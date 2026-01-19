@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KTIRS Service-Wide Revenue Collection System – Revenue Streams</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="icon" href="../assets/favicon.ico" type="image/x-icon" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- PDF export (jsPDF + autoTable) -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.31/dist/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    :root { --kirs-green:#0b4f3c; --kirs-navy:#16324f; }
+    body { font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif; }
+    .brand-gradient { background: linear-gradient(90deg, var(--kirs-navy), var(--kirs-green)); }
+  </style>
+</head>
+
+<body class="bg-slate-100 text-slate-900">
+<div class="min-h-screen flex flex-col">
+
+  <!-- TOP BAR -->
+  <header class="brand-gradient text-white">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between py-3">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <img src="../assets/images/katsina-state-logo.png" alt="Katsina State Government Logo" class="h-10 w-auto object-contain" />
+            <img src="../assets/images/katsina-irs-logo.png" alt="KTIRS Logo" class="h-10 w-auto object-contain" />
+          </div>
+          <div class="hidden sm:flex flex-col leading-tight">
+            <span class="text-xs uppercase tracking-widest text-slate-200">Katsina State Government</span>
+            <span class="text-sm font-semibold">Katsina State Internal Revenue Service (KTIRS)</span>
+            <span class="text-[11px] text-slate-200">Service-Wide Revenue Collection System</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <div class="hidden sm:flex flex-col text-right text-xs">
+            <span class="font-medium" id="topbarUserName">Officer</span>
+            <span class="text-slate-200" id="topbarBranchName">Loading assignment...</span>
+          </div>
+          <button id="userMenuBtn"
+            class="inline-flex items-center justify-center h-9 w-9 rounded-full border border-slate-200/60 bg-white/10 hover:bg-white/20 transition">
+            <span class="text-sm font-semibold" id="topbarUserInitial">O</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- NAV -->
+      <nav class="mt-2 pb-2 border-t border-white/20">
+        <ul class="flex flex-wrap gap-2 text-xs">
+          <li>
+            <a href="index.html" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full hover:bg-white/10 text-slate-100">
+              <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
+              <span>Dashboard</span>
+            </a>
+          </li>
+          <li>
+            <a href="streams.html" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/10 text-white">
+              <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+              <span>Revenue Streams</span>
+            </a>
+          </li>
+          <li>
+            <a href="history.html" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full hover:bg-white/10 text-slate-100">
+              <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+              <span>History</span>
+            </a>
+          </li>
+
+          <li class="ml-auto">
+            <button id="btnLogout" type="button"
+              class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white text-slate-900 hover:bg-slate-100">
+              <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+              <span>Sign out</span>
+            </button>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="flex-1">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-6">
+
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div>
+          <h1 class="text-xl font-semibold text-slate-900">Assigned revenue streams</h1>
+          <p class="text-sm text-slate-600">
+            View your assigned LGA/Branch + stream(s), open details, and continue to monthly entry.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          <div class="px-3 py-1 rounded-full bg-slate-900 text-slate-50">
+            Year: <span class="font-semibold" id="currentYearBadge">—</span>
+          </div>
+          <div class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-100">
+            Assignments: <span class="font-semibold" id="assignmentCountBadge">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white border border-slate-200 rounded-md p-4">
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Assigned LGAs</p>
+          <p class="text-lg font-semibold text-slate-900" id="statLgaCount">—</p>
+          <p class="text-[11px] text-slate-500 mt-1" id="statLgaNames">—</p>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-md p-4">
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Assigned streams</p>
+          <p class="text-lg font-semibold text-slate-900" id="statStreamCount">—</p>
+          <p class="text-[11px] text-slate-500 mt-1">Unique revenue streams across your assignments.</p>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-md p-4">
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Officer</p>
+          <p class="text-base font-semibold text-slate-900" id="statOfficerName">Loading...</p>
+          <p class="text-[11px] text-slate-500 mt-1" id="statOfficerId">—</p>
+        </div>
+      </section>
+
+      <!-- Table -->
+      <section class="bg-white border border-slate-200 rounded-md p-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+          <div>
+            <h2 class="text-sm font-semibold text-slate-900">Your assignments</h2>
+            <p class="text-xs text-slate-500">Each row is an active (LGA, Stream) assignment.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <input id="searchAssign"
+              class="w-full sm:w-72 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-slate-200"
+              placeholder="Search LGA or stream..." />
+          </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-md border border-slate-200/60">
+          <table class="min-w-full text-xs text-left">
+            <thead class="bg-slate-50 text-slate-600">
+              <tr>
+                <th class="px-3 py-2 font-medium border-b border-slate-200">LGA / Branch</th>
+                <th class="px-3 py-2 font-medium border-b border-slate-200">Revenue stream</th>
+                <th class="px-3 py-2 font-medium border-b border-slate-200">Status</th>
+                <th class="px-3 py-2 font-medium border-b border-slate-200 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="streamsTableBody" class="divide-y divide-slate-100">
+              <tr class="text-slate-500">
+                <td colspan="4" class="px-3 py-4 text-center">Loading assignments...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="text-[11px] text-slate-500 mt-3" id="streamsHint">
+          If you have no assignments here, contact KTIRS admin.
+        </p>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- DETAILS MODAL -->
+<div id="detailsModal" class="fixed inset-0 hidden z-50">
+  <div id="detailsBackdrop" class="absolute inset-0 bg-black/40"></div>
+
+  <div class="relative mx-auto mt-10 w-[95%] max-w-4xl bg-white rounded-md border border-slate-200 shadow-lg">
+    <div class="flex items-start justify-between gap-4 p-4 border-b border-slate-200">
+      <div>
+        <h3 class="text-sm font-semibold text-slate-900" id="detailsTitle">Stream details</h3>
+        <p class="text-xs text-slate-500" id="detailsSubtitle">—</p>
+      </div>
+      <button id="closeDetailsBtn"
+        class="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs hover:bg-slate-50">
+        <i data-lucide="x" class="w-4 h-4"></i>
+        <span>Close</span>
+      </button>
+    </div>
+
+    <div class="p-4 space-y-4">
+      <!-- summary -->
+      <section class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="bg-slate-50 border border-slate-200 rounded-md p-3">
+          <p class="text-[11px] text-slate-500 uppercase tracking-wide">Total recorded (all months)</p>
+          <p class="text-base font-semibold text-slate-900" id="detailsTotalRecorded">₦0.00</p>
+        </div>
+        <div class="bg-slate-50 border border-slate-200 rounded-md p-3">
+          <p class="text-[11px] text-slate-500 uppercase tracking-wide">Months recorded</p>
+          <p class="text-base font-semibold text-slate-900" id="detailsMonthsRecorded">0</p>
+          <p class="text-[11px] text-slate-500" id="detailsMonthsHint">—</p>
+        </div>
+        <div class="bg-slate-50 border border-slate-200 rounded-md p-3">
+          <p class="text-[11px] text-slate-500 uppercase tracking-wide">Current year progress</p>
+          <p class="text-base font-semibold text-slate-900" id="detailsYearProgress">0/12</p>
+          <p class="text-[11px] text-slate-500" id="detailsYearHint">—</p>
+        </div>
+      </section>
+
+      <!-- actions -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <p class="text-xs text-slate-600" id="detailsMessage"></p>
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="btnExportExcel"
+            class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs hover:bg-slate-50">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+            <span>Export Excel (CSV)</span>
+          </button>
+          <button id="btnExportPdf"
+            class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs hover:bg-slate-50">
+            <i data-lucide="file-down" class="w-4 h-4"></i>
+            <span>Export PDF</span>
+          </button>
+          <button id="btnGoMonthlyEntry"
+            class="inline-flex items-center gap-2 rounded-md bg-slate-900 text-white px-3 py-2 text-xs hover:bg-slate-800">
+            <i data-lucide="edit-3" class="w-4 h-4"></i>
+            <span>Monthly entry</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- per-month table -->
+      <div class="overflow-x-auto rounded-md border border-slate-200/60">
+        <table class="min-w-full text-xs text-left">
+          <thead class="bg-slate-50 text-slate-600">
+            <tr>
+              <th class="px-3 py-2 font-medium border-b border-slate-200">Month</th>
+              <th class="px-3 py-2 font-medium border-b border-slate-200 text-right">Total recorded</th>
+              <th class="px-3 py-2 font-medium border-b border-slate-200 text-right">Rows</th>
+            </tr>
+          </thead>
+          <tbody id="detailsMonthTableBody" class="divide-y divide-slate-100">
+            <tr class="text-slate-500">
+              <td colspan="3" class="px-3 py-4 text-center">Loading...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="text-[11px] text-slate-500">
+        Totals are based on your submissions in <code>collections</code> for this LGA and stream (via economic codes under the stream).
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Supabase client -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+  window.supabaseClient = supabase.createClient(
+    'https://nljuqchmmyjoxfrugght.supabase.co',
+    'sb_publishable_EBdEwDiYavXVf6iEpV4bNA_8ZOnKQhh'
+  );
+</script>
+
+<!-- IMPORTANT: streams page must load streams.js -->
+<script src="js/streams.js"></script>
+<script>
+  if (window.lucide) lucide.createIcons();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KTIRS Service-Wide Revenue Collection System – Officers</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="icon" href="../assets/favicon.ico" type="image/x-icon" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root { --kirs-green: #0b4f3c; --kirs-navy: #16324f; }
+    body { font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif; }
+    .brand-gradient { background: linear-gradient(90deg, var(--kirs-navy), var(--kirs-green)); }
+    .table-wrapper { position: relative; }
+    .table-wrapper::after {
+      content: "";
+      position: absolute;
+      right: 0; top: 0;
+      width: 16px; height: 100%;
+      pointer-events: none;
+      background: linear-gradient(to left, rgba(15, 23, 42, 0.06), transparent);
+    }
+  </style>
+</head>
+
+<body class="bg-slate-100 text-slate-900">
+<div class="min-h-screen flex flex-col">
+
+  <!-- TOP BAR -->
+  <header class="brand-gradient text-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between py-3">
+
+        <!-- Left: Logos + Text -->
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <img src="../assets/images/katsina-state-logo.png" alt="Katsina State Government Logo" class="h-10 w-auto object-contain" />
+            <img src="../assets/images/katsina-irs-logo.png" alt="KTIRS Logo" class="h-10 w-auto object-contain" />
+          </div>
+          <div class="hidden sm:flex flex-col leading-tight">
+            <span class="text-xs uppercase tracking-widest text-slate-200">Katsina State Government</span>
+            <span class="text-sm font-semibold">Katsina State Internal Revenue Service (KTIRS)</span>
+            <span class="text-[11px] text-slate-200">Service-Wide Revenue Collection System</span>
+          </div>
+        </div>
+
+        <!-- Right: Current user -->
+        <div class="flex items-center gap-4">
+          <div class="hidden sm:flex flex-col text-right text-xs">
+            <span class="font-medium" id="topbarUserName">Admin User</span>
+            <span class="text-slate-200">KTIRS Headquarters</span>
+          </div>
+
+          <button id="userMenuBtn"
+            class="inline-flex items-center justify-center h-9 w-9 rounded-full border border-slate-200/60 bg-white/10 hover:bg-white/20 transition">
+            <span class="text-sm font-semibold" id="topbarUserInitial">A</span>
+          </button>
+
+          <!-- Mobile menu toggle -->
+          <button id="sidebarToggle"
+            class="sm:hidden inline-flex items-center justify-center h-9 w-9 rounded-md border border-white/30 hover:bg-white/10">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <div class="flex flex-1 overflow-hidden relative">
+
+    <!-- Backdrop (mobile) -->
+    <div id="sidebarBackdrop" class="fixed inset-0 bg-black/30 z-20 hidden sm:hidden"></div>
+
+    <!-- SIDEBAR -->
+    <nav id="sidebar"
+      class="bg-white border-r border-slate-200 w-64 flex-shrink-0 flex flex-col
+             transform transition-transform duration-150 ease-out
+             -translate-x-full sm:translate-x-0 fixed sm:static inset-y-0 z-30">
+
+      <div class="px-4 pt-4 pb-3 border-b border-slate-200">
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Authority & Operator</p>
+        <p class="text-[13px] mt-1 text-slate-800">Katsina State Government</p>
+        <p class="text-[13px] text-slate-700">Katsina State Internal Revenue Service (KTIRS)</p>
+      </div>
+
+      <div class="px-3 py-3">
+        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Main navigation</p>
+        <ul class="space-y-1 text-sm">
+
+          <li>
+            <a href="index.html" class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
+              <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700"><i data-lucide="layout-dashboard" class="w-4 h-4"></i></span>
+              <span>Dashboard Overview</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="reports.html" class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
+              <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700"><i data-lucide="file-bar-chart" class="w-4 h-4"></i></span>
+              <span>Reports</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="analytics.html" class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
+              <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700"><i data-lucide="activity" class="w-4 h-4"></i></span>
+              <span>Analytics</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="audit.html" class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
+              <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700"><i data-lucide="history" class="w-4 h-4"></i></span>
+              <span>Audit & logs</span>
+            </a>
+          </li>
+
+          <li><div class="h-px bg-slate-200 my-2"></div></li>
+
+          <li>
+            <a href="streams.html" class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
+              <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700"><i data-lucide="layers" class="w-4 h-4"></i></span>
+              <span>Revenue Streams</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="lgas.html" class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
+              <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700"><i data-lucide="map" class="w-4 h-4"></i></span>
+              <span>LGAs</span>
+            </a>
+          </li>
+
+          <!-- ACTIVE PAGE -->
+          <li>
+            <a href="officers.html" class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 bg-slate-100 text-slate-900 font-medium">
+              <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700"><i data-lucide="users" class="w-4 h-4"></i></span>
+              <span>Officers</span>
+            </a>
+          </li>
+
+          <li><div class="h-px bg-slate-200 my-2"></div></li>
+
+          <li>
+            <a href="settings.html" class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
+              <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700"><i data-lucide="settings" class="w-4 h-4"></i></span>
+              <span>Settings</span>
+            </a>
+          </li>
+
+        </ul>
+      </div>
+
+      <div class="mt-auto px-3 py-3 border-t border-slate-200 text-[11px] text-slate-500 space-y-2">
+        <button id="logoutBtn" type="button"
+          class="w-full inline-flex items-center justify-between rounded-md border border-slate-200 px-2.5 py-1.5 text-[11px] text-slate-700 hover:bg-slate-50">
+          <span class="inline-flex items-center gap-1">
+            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+            <span>Log out</span>
+          </span>
+          <span class="text-slate-400">Exit</span>
+        </button>
+
+        <div>
+          <p>© Katsina State Government</p>
+          <p>Katsina State Internal Revenue Service (KTIRS)</p>
+          <p class="italic mt-0.5">Authorized Government System</p>
+        </div>
+      </div>
+    </nav>
+
+    <!-- MAIN -->
+    <main class="flex-1 overflow-y-auto">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-6">
+
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div>
+            <h1 class="text-xl font-semibold text-slate-900">Officers</h1>
+            <p class="text-sm text-slate-600">
+              Manage officer accounts, assignments, and dashboard credentials.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="openCreateOfficerBtn"
+              class="h-9 inline-flex items-center gap-2 rounded-md bg-slate-900 text-slate-50 px-3 text-xs font-medium hover:bg-slate-800">
+              <i data-lucide="user-plus" class="w-4 h-4"></i>
+              <span>Create Officer</span>
+            </button>
+          </div>
+        </div>
+
+        <section class="space-y-5">
+          <div class="bg-white border border-slate-200 rounded-md p-4">
+
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-3">
+              <div>
+                <h2 class="text-sm font-semibold text-slate-900">Registered officers</h2>
+                <p class="text-xs text-slate-500">
+                  Officers without an active assignment appear as “Unassigned”.
+                </p>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2">
+                <input id="searchOfficer" type="text"
+                  class="h-9 rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                  placeholder="Search name / ID" />
+
+                <label class="inline-flex items-center gap-2 text-xs text-slate-600 select-none">
+                  <input id="filterUnassigned" type="checkbox"
+                    class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400" />
+                  Unassigned only
+                </label>
+              </div>
+            </div>
+
+            <div class="table-wrapper overflow-x-auto rounded-md border border-slate-200/60">
+              <table class="min-w-full text-xs text-left">
+                <thead class="bg-slate-50 text-slate-600">
+                  <tr>
+                    <th class="px-3 py-2 font-medium border-b border-slate-200">Officer</th>
+                    <th class="px-3 py-2 font-medium border-b border-slate-200">Status</th>
+                    <th class="px-3 py-2 font-medium border-b border-slate-200">LGA / Branch</th>
+                    <th class="px-3 py-2 font-medium border-b border-slate-200">Revenue stream(s)</th>
+                    <th class="px-3 py-2 font-medium border-b border-slate-200 text-right">Actions</th>
+                  </tr>
+                </thead>
+
+                <tbody id="officersTableBody" class="divide-y divide-slate-100">
+                  <tr class="text-slate-500">
+                    <td colspan="5" class="px-3 py-4 text-center">Loading officers...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p class="text-[11px] text-slate-500 mt-3" id="officersHint">
+              Tip: Use “Assign/Reassign” to manage assignments, “Unassign” to deactivate all assignments, “Credentials” to reset password, and “Delete” to remove an officer.
+            </p>
+
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ===================== MODALS (RESPONSIVE) ===================== -->
+
+<!-- CREATE OFFICER MODAL -->
+<div id="createOfficerModal" class="fixed inset-0 z-[60] hidden">
+  <div class="absolute inset-0 bg-black/40" id="createOfficerBackdrop"></div>
+
+  <!-- container: scrollable on small screens -->
+  <div class="relative z-[61] min-h-full w-full flex items-start sm:items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <!-- dialog -->
+    <div class="w-full max-w-3xl bg-white rounded-md shadow-xl border border-slate-200 overflow-hidden">
+      <div class="flex items-start justify-between px-4 py-3 border-b border-slate-200">
+        <div>
+          <p class="text-xs text-slate-500">Create officer</p>
+          <h3 class="text-sm font-semibold text-slate-900">New officer</h3>
+        </div>
+
+        <button id="closeCreateOfficerBtn" type="button"
+          class="h-9 w-9 inline-flex items-center justify-center rounded-md hover:bg-slate-100">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- scroll area -->
+      <div class="px-4 py-4 space-y-4 text-xs max-h-[80vh] overflow-y-auto">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="sm:col-span-1">
+            <label class="block mb-1 text-slate-700" for="createOfficerName">Full name</label>
+            <input id="createOfficerName" type="text"
+              class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+              placeholder="e.g. Aisha Ibrahim" />
+          </div>
+
+          <div class="sm:col-span-1">
+            <label class="block mb-1 text-slate-700" for="createOfficerEmail">Email</label>
+            <input id="createOfficerEmail" type="email"
+              class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+              placeholder="e.g. officer@ktirs.ng" />
+          </div>
+
+          <div class="sm:col-span-1">
+            <label class="block mb-1 text-slate-700" for="createOfficerPhone">Phone</label>
+            <input id="createOfficerPhone" type="tel"
+              class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+              placeholder="e.g. 0803..." />
+          </div>
+
+          <div class="sm:col-span-1">
+            <label class="block mb-1 text-slate-700" for="createOfficerPassword">Password</label>
+            <input id="createOfficerPassword" type="password"
+              class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+              placeholder="Enter password" />
+          </div>
+
+          <div class="sm:col-span-1">
+            <label class="block mb-1 text-slate-700" for="createOfficerPassword2">Confirm password</label>
+            <input id="createOfficerPassword2" type="password"
+              class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+              placeholder="Confirm password" />
+          </div>
+
+          <div class="sm:col-span-1">
+            <label class="block mb-1 text-slate-700">Account role</label>
+            <div class="h-9 rounded-md border border-slate-200 bg-slate-50 px-2.5 flex items-center text-xs text-slate-700">
+              Officer
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-200 rounded-md p-3">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-xs font-semibold text-slate-900">Optional: Assign now</p>
+              <p class="text-[11px] text-slate-500">You can leave this blank and assign later.</p>
+            </div>
+            <label class="inline-flex items-center gap-2 text-xs text-slate-700 select-none">
+              <input id="createAssignNow" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400" />
+              Assign now
+            </label>
+          </div>
+
+          <div id="createAssignFields" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 hidden">
+            <div>
+              <label class="block mb-1 text-slate-700" for="createAssignLga">LGA / Branch</label>
+              <select id="createAssignLga"
+                class="w-full h-9 rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400">
+                <option value="">Select LGA…</option>
+              </select>
+            </div>
+            <div>
+              <label class="block mb-1 text-slate-700" for="createAssignStream">Revenue stream</label>
+              <select id="createAssignStream"
+                class="w-full h-9 rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400">
+                <option value="">Select stream…</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <p id="createOfficerMessage" class="text-[11px] text-slate-500"></p>
+      </div>
+
+      <div class="px-4 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-2">
+        <button id="saveCreateOfficerBtn"
+          class="px-4 py-2 rounded-md text-sm bg-slate-900 text-white hover:bg-slate-800">
+          Save
+        </button>
+        <button id="closeCreateOfficerBtn2"
+          class="px-4 py-2 rounded-md text-sm border border-slate-200 hover:bg-white">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ASSIGN / REASSIGN MODAL -->
+<div id="assignModal" class="fixed inset-0 z-[60] hidden">
+  <div class="absolute inset-0 bg-black/40" id="assignBackdrop"></div>
+
+  <div class="relative z-[61] min-h-full w-full flex items-start sm:items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <div class="w-full max-w-2xl bg-white rounded-md shadow-xl border border-slate-200 overflow-hidden">
+      <div class="flex items-start justify-between px-4 py-3 border-b border-slate-200">
+        <div>
+          <p class="text-xs text-slate-500">Officer assignment</p>
+          <h3 class="text-sm font-semibold text-slate-900" id="assignTitle">Assign officer</h3>
+        </div>
+
+        <button id="closeAssignBtn" type="button"
+          class="h-9 w-9 inline-flex items-center justify-center rounded-md hover:bg-slate-100">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="px-4 py-4 space-y-4 text-xs max-h-[80vh] overflow-y-auto">
+        <div class="bg-slate-50 border border-slate-200 rounded-md p-3">
+          <p class="text-[11px] text-slate-500 uppercase tracking-wide">Officer</p>
+          <p class="text-sm font-semibold text-slate-900" id="assignOfficerName">—</p>
+          <p class="text-[11px] text-slate-500" id="assignOfficerId">—</p>
+        </div>
+
+        <div>
+          <p class="text-xs font-semibold text-slate-900">Mode</p>
+          <div class="flex flex-wrap gap-3 mt-2">
+            <label class="inline-flex items-center gap-2">
+              <input type="radio" name="assignMode" value="replace" checked class="h-4 w-4 text-slate-900 focus:ring-slate-400" />
+              Replace (reassign)
+            </label>
+            <label class="inline-flex items-center gap-2">
+              <input type="radio" name="assignMode" value="add" class="h-4 w-4 text-slate-900 focus:ring-slate-400" />
+              Add assignment
+            </label>
+          </div>
+          <p class="text-[11px] text-slate-500 mt-1">
+            Replace will deactivate current active assignments for this officer, then create the new one.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block mb-1 text-slate-700" for="assignLgaSelect">LGA / Branch</label>
+            <select id="assignLgaSelect"
+              class="w-full h-9 rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400">
+              <option value="">Select LGA…</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block mb-1 text-slate-700" for="assignStreamSelect">Revenue stream</label>
+            <select id="assignStreamSelect"
+              class="w-full h-9 rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400">
+              <option value="">Select stream…</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <p class="text-xs font-semibold text-slate-900">Current active assignments</p>
+
+          <!-- NEW: Unassign button (JS should deactivate assignments) -->
+          <button id="unassignOfficerBtn" type="button"
+            class="inline-flex items-center justify-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-700 hover:bg-rose-100 w-full sm:w-auto">
+            <i data-lucide="unlink" class="w-4 h-4"></i>
+            Unassign (Deactivate all)
+          </button>
+        </div>
+
+        <div class="table-wrapper overflow-x-auto rounded-md border border-slate-200/60">
+          <table class="min-w-full text-xs text-left">
+            <thead class="bg-slate-50 text-slate-600">
+              <tr>
+                <th class="px-3 py-2 font-medium border-b border-slate-200">LGA / Branch</th>
+                <th class="px-3 py-2 font-medium border-b border-slate-200">Stream</th>
+              </tr>
+            </thead>
+            <tbody id="assignCurrentTableBody" class="divide-y divide-slate-100">
+              <tr class="text-slate-500">
+                <td colspan="2" class="px-3 py-4 text-center">No active assignments.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p id="assignMessage" class="text-[11px] text-slate-500"></p>
+      </div>
+
+      <div class="px-4 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-2">
+        <button id="saveAssignBtn"
+          class="px-4 py-2 rounded-md text-sm bg-slate-900 text-white hover:bg-slate-800">
+          Save
+        </button>
+        <button id="closeAssignBtn2"
+          class="px-4 py-2 rounded-md text-sm border border-slate-200 hover:bg-white">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CREDENTIALS MODAL (Admin reset only) -->
+<div id="credentialsModal" class="fixed inset-0 z-[60] hidden">
+  <div class="absolute inset-0 bg-black/40" id="credentialsBackdrop"></div>
+
+  <div class="relative z-[61] min-h-full w-full flex items-start sm:items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <div class="w-full max-w-2xl bg-white rounded-md shadow-xl border border-slate-200 overflow-hidden">
+      <div class="flex items-start justify-between px-4 py-3 border-b border-slate-200">
+        <div>
+          <p class="text-xs text-slate-500">Dashboard credentials</p>
+          <h3 class="text-sm font-semibold text-slate-900" id="credentialsTitle">Manage credentials</h3>
+        </div>
+
+        <button id="closeCredentialsBtn" type="button"
+          class="h-9 w-9 inline-flex items-center justify-center rounded-md hover:bg-slate-100">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="px-4 py-4 space-y-5 text-xs max-h-[80vh] overflow-y-auto">
+        <div class="bg-slate-50 border border-slate-200 rounded-md p-3">
+          <p class="text-[11px] text-slate-500 uppercase tracking-wide">Officer</p>
+          <p class="text-sm font-semibold text-slate-900" id="credentialsOfficerName">—</p>
+          <p class="text-[11px] text-slate-500" id="credentialsOfficerId">—</p>
+        </div>
+
+        <!-- Admin reset -->
+        <div class="border border-slate-200 rounded-md p-3">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-xs font-semibold text-slate-900">Reset password (Admin)</p>
+              <p class="text-[11px] text-slate-500">Set a new password for this officer dashboard account.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+            <div>
+              <label class="block mb-1 text-slate-700" for="resetOfficerPassword">New password</label>
+              <input id="resetOfficerPassword" type="password"
+                class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                placeholder="Enter new password" />
+            </div>
+            <div>
+              <label class="block mb-1 text-slate-700" for="resetOfficerPassword2">Confirm password</label>
+              <input id="resetOfficerPassword2" type="password"
+                class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                placeholder="Confirm new password" />
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-2 mt-3">
+            <button id="saveResetPasswordBtn"
+              class="px-4 py-2 rounded-md text-sm bg-slate-900 text-white hover:bg-slate-800 w-full sm:w-auto">
+              Save password
+            </button>
+          </div>
+        </div>
+
+        <p id="credentialsMessage" class="text-[11px] text-slate-500"></p>
+      </div>
+
+      <div class="px-4 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-2">
+        <button id="closeCredentialsBtn2"
+          class="px-4 py-2 rounded-md text-sm border border-slate-200 hover:bg-white">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE OFFICER CONFIRM MODAL (NEW) -->
+<div id="deleteOfficerModal" class="fixed inset-0 z-[70] hidden">
+  <div class="absolute inset-0 bg-black/40" id="deleteOfficerBackdrop"></div>
+
+  <div class="relative z-[71] min-h-full w-full flex items-start sm:items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <div class="w-full max-w-lg bg-white rounded-md shadow-xl border border-slate-200 overflow-hidden">
+      <div class="flex items-start justify-between px-4 py-3 border-b border-slate-200">
+        <div>
+          <p class="text-xs text-slate-500">Danger zone</p>
+          <h3 class="text-sm font-semibold text-slate-900">Delete officer</h3>
+        </div>
+
+        <button id="closeDeleteOfficerBtn" type="button"
+          class="h-9 w-9 inline-flex items-center justify-center rounded-md hover:bg-slate-100">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="px-4 py-4 space-y-3 text-xs">
+        <div class="bg-rose-50 border border-rose-200 rounded-md p-3 text-rose-800">
+          <p class="font-semibold">This action cannot be undone.</p>
+          <p class="text-[11px] text-rose-700 mt-1">
+            Deleting an officer should also deactivate their assignments and remove their profile record. (Auth user deletion requires an Edge Function / service role.)
+          </p>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-200 rounded-md p-3">
+          <p class="text-[11px] text-slate-500 uppercase tracking-wide">Officer</p>
+          <p class="text-sm font-semibold text-slate-900" id="deleteOfficerName">—</p>
+          <p class="text-[11px] text-slate-500" id="deleteOfficerId">—</p>
+        </div>
+
+        <p id="deleteOfficerMessage" class="text-[11px] text-slate-500"></p>
+      </div>
+
+      <div class="px-4 py-3 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2">
+        <button id="confirmDeleteOfficerBtn"
+          class="px-4 py-2 rounded-md text-sm bg-rose-600 text-white hover:bg-rose-700">
+          Delete officer
+        </button>
+        <button id="closeDeleteOfficerBtn2"
+          class="px-4 py-2 rounded-md text-sm border border-slate-200 hover:bg-white">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Supabase client -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+  const { createClient } = supabase;
+  const SUPABASE_URL = 'https://nljuqchmmyjoxfrugght.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_EBdEwDiYavXVf6iEpV4bNA_8ZOnKQhh';
+
+  // expose for secondary client usage (create user without overwriting admin session)
+  window.SUPABASE_URL = SUPABASE_URL;
+  window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
+
+  window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+
+<script src="js/officers.js"></script>
+<script>
+  if (window.lucide) lucide.createIcons();
+</script>
+</body>
+</html>

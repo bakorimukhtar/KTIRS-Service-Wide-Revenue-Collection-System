@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KTIRS Service-Wide Revenue Collection System – Revenue Streams</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="icon" href="../assets/favicon.ico" type="image/x-icon" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root { --kirs-green: #0b4f3c; --kirs-navy: #16324f; }
+    body { font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif; }
+    .brand-gradient { background: linear-gradient(90deg, var(--kirs-navy), var(--kirs-green)); }
+    .table-wrapper { position: relative; }
+    .table-wrapper::after {
+      content: "";
+      position: absolute;
+      right: 0; top: 0;
+      width: 16px; height: 100%;
+      pointer-events: none;
+      background: linear-gradient(to left, rgba(15, 23, 42, 0.06), transparent);
+    }
+  </style>
+</head>
+
+<body class="bg-slate-100 text-slate-900">
+<div class="min-h-screen flex flex-col">
+
+  <!-- TOP BAR -->
+  <header class="brand-gradient text-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between py-3">
+
+        <!-- Left: Logos + Text -->
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <img src="../assets/images/katsina-state-logo.png" alt="Katsina State Government Logo" class="h-10 w-auto object-contain" />
+            <img src="../assets/images/katsina-irs-logo.png" alt="KTIRS Logo" class="h-10 w-auto object-contain" />
+          </div>
+          <div class="hidden sm:flex flex-col leading-tight">
+            <span class="text-xs uppercase tracking-widest text-slate-200">Katsina State Government</span>
+            <span class="text-sm font-semibold">Katsina State Internal Revenue Service (KTIRS)</span>
+            <span class="text-[11px] text-slate-200">Service-Wide Revenue Collection System</span>
+          </div>
+        </div>
+
+        <!-- Right: Current user -->
+        <div class="flex items-center gap-4">
+          <div class="hidden sm:flex flex-col text-right text-xs">
+            <span class="font-medium" id="topbarUserName">Admin User</span>
+            <span class="text-slate-200">KTIRS Headquarters</span>
+          </div>
+
+          <button id="userMenuBtn"
+            class="inline-flex items-center justify-center h-9 w-9 rounded-full border border-slate-200/60 bg-white/10 hover:bg-white/20 transition">
+            <span class="text-sm font-semibold" id="topbarUserInitial">A</span>
+          </button>
+
+          <!-- Mobile menu toggle -->
+          <button id="sidebarToggle"
+            class="sm:hidden inline-flex items-center justify-center h-9 w-9 rounded-md border border-white/30 hover:bg-white/10">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <div class="flex flex-1 overflow-hidden relative">
+
+    <!-- Backdrop (mobile) -->
+    <div id="sidebarBackdrop" class="fixed inset-0 bg-black/30 z-20 hidden sm:hidden"></div>
+
+    <!-- SIDEBAR -->
+    <nav id="sidebar"
+      class="bg-white border-r border-slate-200 w-64 flex-shrink-0 flex flex-col
+             transform transition-transform duration-150 ease-out
+             -translate-x-full sm:translate-x-0 fixed sm:static inset-y-0 z-30">
+
+      <div class="px-4 pt-4 pb-3 border-b border-slate-200">
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Authority & Operator</p>
+        <p class="text-[13px] mt-1 text-slate-800">Katsina State Government</p>
+        <p class="text-[13px] text-slate-700">Katsina State Internal Revenue Service (KTIRS)</p>
+      </div>
+
+      <div class="px-3 py-3">
+        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Main navigation</p>
+        <ul class="space-y-1 text-sm">
+
+          <li>
+            <a href="index.html" class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
+              <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700"><i data-lucide="layout-dashboard" class="w-4 h-4"></i></span>
+              <span>Dashboard Overview</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="reports.html" class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
+              <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700"><i data-lucide="file-bar-chart" class="w-4 h-4"></i></span>
+              <span>Reports</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="analytics.html" class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
+              <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700"><i data-lucide="activity" class="w-4 h-4"></i></span>
+              <span>Analytics</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="audit.html" class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
+              <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700"><i data-lucide="history" class="w-4 h-4"></i></span>
+              <span>Audit & logs</span>
+            </a>
+          </li>
+
+          <li><div class="h-px bg-slate-200 my-2"></div></li>
+
+          <!-- ACTIVE PAGE -->
+          <li>
+            <a href="streams.html" class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 bg-slate-100 text-slate-900 font-medium">
+              <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700"><i data-lucide="layers" class="w-4 h-4"></i></span>
+              <span>Revenue Streams</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="lgas.html" class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
+              <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700"><i data-lucide="map" class="w-4 h-4"></i></span>
+              <span>LGAs</span>
+            </a>
+          </li>
+
+          <li>
+            <a href="officers.html" class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
+              <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700"><i data-lucide="users" class="w-4 h-4"></i></span>
+              <span>Officers</span>
+            </a>
+          </li>
+
+          <li><div class="h-px bg-slate-200 my-2"></div></li>
+
+          <li>
+            <a href="settings.html" class="nav-link flex items-center gap-2 rounded-md px-2.5 py-2 text-slate-700 hover:bg-slate-50">
+              <span class="inline-flex h-5 w-5 items-center justify-center text-slate-700"><i data-lucide="settings" class="w-4 h-4"></i></span>
+              <span>Settings</span>
+            </a>
+          </li>
+
+        </ul>
+      </div>
+
+      <div class="mt-auto px-3 py-3 border-t border-slate-200 text-[11px] text-slate-500 space-y-2">
+        <button id="logoutBtn" type="button"
+          class="w-full inline-flex items-center justify-between rounded-md border border-slate-200 px-2.5 py-1.5 text-[11px] text-slate-700 hover:bg-slate-50">
+          <span class="inline-flex items-center gap-1">
+            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+            <span>Log out</span>
+          </span>
+          <span class="text-slate-400">Exit</span>
+        </button>
+
+        <div>
+          <p>© Katsina State Government</p>
+          <p>Katsina State Internal Revenue Service (KTIRS)</p>
+          <p class="italic mt-0.5">Authorized Government System</p>
+        </div>
+      </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 overflow-y-auto">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-6">
+
+        <!-- Header row -->
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div>
+            <h1 class="text-xl font-semibold text-slate-900">Revenue Streams</h1>
+            <p class="text-sm text-slate-600">
+              View and manage service-wide revenue streams, budgets, and officer collections.
+            </p>
+          </div>
+
+          <button type="button"
+            onclick="window.location.href='stream-new.html'"
+            class="inline-flex items-center gap-2 rounded-md bg-slate-900 text-slate-50 px-4 py-2 text-sm font-medium hover:bg-slate-800">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Create new stream</span>
+          </button>
+        </div>
+
+        <!-- Streams list -->
+        <section class="space-y-5">
+          <div class="bg-white border border-slate-200 rounded-md p-4">
+
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-3">
+              <div>
+                <h2 class="text-sm font-semibold text-slate-900">Available revenue streams</h2>
+                <p class="text-xs text-slate-500">
+                  Budgets are configured per year for each revenue stream.
+                </p>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2">
+                <input id="searchStream" type="text"
+                  class="h-9 rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                  placeholder="Search stream name" />
+
+                <select id="filterStatus"
+                  class="h-9 rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400">
+                  <option value="">All statuses</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+
+                <!-- NEW -->
+                <select id="budgetYearFilter"
+                  class="h-9 rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400">
+                </select>
+              </div>
+            </div>
+
+            <div class="table-wrapper overflow-x-auto rounded-md border border-slate-200/60">
+              <table class="min-w-full text-xs text-left">
+                <thead class="bg-slate-50 text-slate-600">
+                  <tr>
+                    <th class="px-3 py-2 font-medium border-b border-slate-200">Stream name</th>
+                    <th class="px-3 py-2 font-medium border-b border-slate-200">Status</th>
+                    <th class="px-3 py-2 font-medium border-b border-slate-200">Codes</th>
+                    <th class="px-3 py-2 font-medium border-b border-slate-200">Annual budget (Year)</th>
+                    <th class="px-3 py-2 font-medium border-b border-slate-200">Monthly target (Year)</th>
+                    <th class="px-3 py-2 font-medium border-b border-slate-200 text-right">Actions</th>
+                  </tr>
+                </thead>
+
+                <tbody id="streamsTableBody" class="divide-y divide-slate-100">
+                  <tr class="text-slate-500">
+                    <td colspan="6" class="px-3 py-4 text-center">Loading revenue streams...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- DETAILS MODAL -->
+<div id="detailsModal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/40" id="detailsBackdrop"></div>
+
+  <div class="relative max-w-5xl mx-auto mt-10 sm:mt-14 bg-white rounded-md shadow-xl border border-slate-200 overflow-hidden">
+    <div class="flex items-start justify-between px-4 py-3 border-b border-slate-200">
+      <div>
+        <p class="text-xs text-slate-500">Revenue stream details</p>
+        <h3 class="text-sm font-semibold text-slate-900" id="detailsStreamName">Stream</h3>
+      </div>
+
+      <button id="closeDetailsBtn" class="h-9 w-9 inline-flex items-center justify-center rounded-md hover:bg-slate-100">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <div class="px-4 py-4 space-y-5">
+      <!-- Summary -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="bg-slate-50 border border-slate-200 rounded-md p-3">
+          <p class="text-[11px] text-slate-500 uppercase tracking-wide">Economic codes</p>
+          <p class="text-lg font-semibold text-slate-900" id="detailsCodesCount">0</p>
+        </div>
+        <div class="bg-slate-50 border border-slate-200 rounded-md p-3">
+          <p class="text-[11px] text-slate-500 uppercase tracking-wide">Annual budget (Year)</p>
+          <p class="text-lg font-semibold text-slate-900" id="detailsAnnualTotal">₦0.00</p>
+        </div>
+        <div class="bg-slate-50 border border-slate-200 rounded-md p-3">
+          <p class="text-[11px] text-slate-500 uppercase tracking-wide">Monthly target (Year)</p>
+          <p class="text-lg font-semibold text-slate-900" id="detailsMonthlyTotal">₦0.00</p>
+        </div>
+      </div>
+
+      <!-- Tabs + Controls -->
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="tabCodes" class="px-3 py-1.5 rounded-md text-xs border border-slate-200 bg-slate-900 text-white">
+          Economic codes
+        </button>
+        <button id="tabMonthly" class="px-3 py-1.5 rounded-md text-xs border border-slate-200 hover:bg-slate-50">
+          Monthly records
+        </button>
+
+        <div class="ml-auto flex flex-wrap items-center gap-2">
+          <label class="text-xs text-slate-500">Budget year</label>
+          <select id="detailsBudgetYear"
+            class="h-9 rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400"></select>
+
+          <button id="openBudgetModalBtn"
+            class="h-9 inline-flex items-center gap-2 rounded-md bg-slate-900 text-slate-50 px-3 text-xs font-medium hover:bg-slate-800">
+            <i data-lucide="wallet-cards" class="w-4 h-4"></i>
+            <span>Set budget</span>
+          </button>
+
+          <label class="text-xs text-slate-500">Month</label>
+          <input id="monthPicker" type="month"
+            class="h-9 rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400" />
+        </div>
+      </div>
+
+      <!-- Codes table -->
+      <section id="panelCodes" class="space-y-2">
+        <div class="table-wrapper overflow-x-auto rounded-md border border-slate-200/60">
+          <table class="min-w-full text-xs text-left">
+            <thead class="bg-slate-50 text-slate-600">
+              <tr>
+                <th class="px-3 py-2 font-medium border-b border-slate-200">Code</th>
+                <th class="px-3 py-2 font-medium border-b border-slate-200">Name</th>
+                <th class="px-3 py-2 font-medium border-b border-slate-200">Status</th>
+              </tr>
+            </thead>
+            <tbody id="codesTableBody" class="divide-y divide-slate-100">
+              <tr class="text-slate-500">
+                <td colspan="3" class="px-3 py-4 text-center">Select a stream to load codes…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Monthly records table -->
+      <section id="panelMonthly" class="space-y-2 hidden">
+        <div class="table-wrapper overflow-x-auto rounded-md border border-slate-200/60">
+          <table class="min-w-full text-xs text-left">
+            <thead class="bg-slate-50 text-slate-600">
+              <tr>
+                <th class="px-3 py-2 font-medium border-b border-slate-200">LGA</th>
+                <th class="px-3 py-2 font-medium border-b border-slate-200">Economic code</th>
+                <th class="px-3 py-2 font-medium border-b border-slate-200">Officer</th>
+                <th class="px-3 py-2 font-medium border-b border-slate-200">Month</th>
+                <th class="px-3 py-2 font-medium border-b border-slate-200">Amount</th>
+                <th class="px-3 py-2 font-medium border-b border-slate-200">Submitted</th>
+              </tr>
+            </thead>
+            <tbody id="monthlyTableBody" class="divide-y divide-slate-100">
+              <tr class="text-slate-500">
+                <td colspan="6" class="px-3 py-4 text-center">Select a stream to load monthly records…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="text-[11px] text-slate-500">
+          Records come from officer submissions (collections) and are filtered by the month selected.
+        </p>
+      </section>
+    </div>
+
+    <div class="px-4 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-2">
+      <button id="closeDetailsBtn2" class="px-4 py-2 rounded-md text-sm border border-slate-200 hover:bg-white">
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- BUDGET MODAL -->
+<div id="budgetModal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/40" id="budgetBackdrop"></div>
+
+  <div class="relative max-w-xl mx-auto mt-10 sm:mt-14 bg-white rounded-md shadow-xl border border-slate-200 overflow-hidden">
+    <div class="flex items-start justify-between px-4 py-3 border-b border-slate-200">
+      <div>
+        <p class="text-xs text-slate-500">Set stream budget</p>
+        <h3 class="text-sm font-semibold text-slate-900" id="budgetModalTitle">Revenue Stream</h3>
+      </div>
+
+      <button id="closeBudgetBtn" class="h-9 w-9 inline-flex items-center justify-center rounded-md hover:bg-slate-100">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <div class="px-4 py-4 space-y-4 text-xs">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label class="block mb-1 text-slate-700" for="budgetYearInput">Budget year</label>
+          <input id="budgetYearInput" type="number" min="2000" step="1"
+            class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400" />
+        </div>
+
+        <div>
+          <label class="block mb-1 text-slate-700" for="monthlyTargetInput">Monthly target (for that year)</label>
+          <input id="monthlyTargetInput" type="number" min="0" step="0.01"
+            class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+            placeholder="e.g. 41666666.67" />
+        </div>
+      </div>
+
+      <div>
+        <label class="block mb-1 text-slate-700" for="annualBudgetInput">Annual approved budget (for that year)</label>
+        <input id="annualBudgetInput" type="number" min="0" step="0.01"
+          class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+          placeholder="e.g. 500000000" />
+      </div>
+
+      <p id="budgetFormMessage" class="text-[11px] text-slate-500"></p>
+    </div>
+
+    <div class="px-4 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-2">
+      <button id="saveBudgetBtn"
+        class="px-4 py-2 rounded-md text-sm bg-slate-900 text-white hover:bg-slate-800">
+        Save budget
+      </button>
+      <button id="closeBudgetBtn2"
+        class="px-4 py-2 rounded-md text-sm border border-slate-200 hover:bg-white">
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Supabase client -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+  const { createClient } = supabase;
+
+  const SUPABASE_URL = 'https://nljuqchmmyjoxfrugght.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_EBdEwDiYavXVf6iEpV4bNA_8ZOnKQhh';
+
+  window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+
+<script src="js/streams.js"></script>
+<script>
+  if (window.lucide) lucide.createIcons();
+</script>
+</body>
+</html>

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KTIRS Service-Wide Revenue Collection System — LGA Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="../assets/favicon.ico" type="image/x-icon" />
+
+  <!-- Tailwind (dev) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- OPTIONAL (client-side PDF export for now) -->
+  <!-- jsPDF + autoTable can parse an HTML table and output PDF -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    :root { --kirs-green: #0b4f3c; --kirs-navy: #16324f; }
+    body { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif; }
+    .brand-gradient { background: linear-gradient(90deg, var(--kirs-navy), var(--kirs-green)); }
+    .table-wrapper { position: relative; }
+    .table-wrapper:after {
+      content: "";
+      position: absolute; right: 0; top: 0;
+      width: 16px; height: 100%;
+      pointer-events: none;
+      background: linear-gradient(to left, rgba(15, 23, 42, 0.06), transparent);
+    }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff !important; }
+      main { overflow: visible !important; }
+    }
+  </style>
+</head>
+
+<body class="bg-slate-100 text-slate-900">
+  <div class="min-h-screen flex flex-col">
+
+    <!-- TOP BAR (same style, no sidebar) -->
+    <header class="brand-gradient text-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between py-3">
+          <!-- Left: Logos -->
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
+              <img src="../assets/images/katsina-state-logo.png" alt="Katsina State Government Logo" class="h-10 w-auto object-contain" />
+              <img src="../assets/images/katsina-irs-logo.png" alt="KTIRS Logo" class="h-10 w-auto object-contain" />
+            </div>
+            <div class="hidden sm:flex flex-col leading-tight">
+              <span class="text-xs uppercase tracking-widest text-slate-200">Katsina State Government</span>
+              <span class="text-sm font-semibold">Katsina State Internal Revenue Service (KTIRS)</span>
+              <span class="text-[11px] text-slate-200">Service-Wide Revenue Collection System</span>
+            </div>
+          </div>
+
+          <!-- Right: current user -->
+          <div class="flex items-center gap-4">
+            <div class="hidden sm:flex flex-col text-right text-xs">
+              <span class="font-medium" id="topbarUserName">Admin User</span>
+              <span class="text-slate-200">KTIRS Headquarters</span>
+            </div>
+            <button id="userMenuBtn" class="inline-flex items-center justify-center h-9 w-9 rounded-full border border-slate-200/60 bg-white/10 hover:bg-white/20 transition">
+              <span class="text-sm font-semibold" id="topbarUserInitial">A</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN -->
+    <main class="flex-1 overflow-y-auto">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-6">
+
+        <!-- Header + controls -->
+        <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
+          <div class="space-y-1">
+            <div class="no-print">
+              <a href="lgas.html"
+                 class="inline-flex items-center gap-2 text-xs text-slate-700 hover:text-slate-900">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                <span>Return to LGAs</span>
+              </a>
+            </div>
+
+            <h1 class="text-xl font-semibold text-slate-900">LGA Report</h1>
+            <p class="text-sm text-slate-600" id="reportSubtitle">Loading report…</p>
+          </div>
+
+          <div class="no-print flex flex-wrap items-center gap-2">
+            <label class="text-xs text-slate-500">Month</label>
+            <input id="monthPicker" type="month"
+              class="h-9 rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400" />
+
+            <label class="text-xs text-slate-500">Budget year</label>
+            <select id="budgetYearFilter"
+              class="h-9 rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400"></select>
+
+            <button id="exportStreamsCsvBtn"
+              class="h-9 inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              <span>Streams (CSV)</span>
+            </button>
+
+            <button id="exportCodesCsvBtn"
+              class="h-9 inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              <span>Codes (CSV)</span>
+            </button>
+
+            <button id="exportPdfBtn"
+              class="h-9 inline-flex items-center gap-2 rounded-md bg-slate-900 text-slate-50 px-3 text-xs font-medium hover:bg-slate-800">
+              <i data-lucide="file-text" class="w-4 h-4"></i>
+              <span>Export PDF</span>
+            </button>
+
+            <button id="printBtn"
+              class="h-9 inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50">
+              <i data-lucide="printer" class="w-4 h-4"></i>
+              <span>Print</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Summary cards -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div class="bg-white border border-slate-200 rounded-md p-4">
+            <p class="text-[11px] text-slate-500 uppercase tracking-wide">LGA</p>
+            <p class="text-base font-semibold text-slate-900" id="cardLgaName">—</p>
+            <p class="text-[11px] text-slate-500" id="cardPeriod">—</p>
+          </div>
+
+          <div class="bg-white border border-slate-200 rounded-md p-4">
+            <p class="text-[11px] text-slate-500 uppercase tracking-wide">Officers assigned</p>
+            <p class="text-lg font-semibold text-slate-900" id="cardOfficers">0</p>
+          </div>
+
+          <div class="bg-white border border-slate-200 rounded-md p-4">
+            <p class="text-[11px] text-slate-500 uppercase tracking-wide">Active streams (system-wide)</p>
+            <p class="text-lg font-semibold text-slate-900" id="cardStreams">0</p>
+          </div>
+
+          <div class="bg-white border border-slate-200 rounded-md p-4">
+            <p class="text-[11px] text-slate-500 uppercase tracking-wide">Collected (selected month)</p>
+            <p class="text-lg font-semibold text-slate-900" id="cardCollected">₦0.00</p>
+          </div>
+        </section>
+
+        <!-- Streams table -->
+        <section class="bg-white border border-slate-200 rounded-md p-4 space-y-3">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h2 class="text-sm font-semibold text-slate-900">Revenue streams performance</h2>
+              <p class="text-xs text-slate-500">Approved budgets are per stream (selected budget year). Collected is the sum of all codes under the stream for the selected LGA/month.</p>
+            </div>
+          </div>
+
+          <div class="table-wrapper overflow-x-auto rounded-md border border-slate-200/60">
+            <table id="streamsTable" class="min-w-full text-xs text-left">
+              <thead class="bg-slate-50 text-slate-600">
+                <tr>
+                  <th class="px-3 py-2 font-medium border-b border-slate-200">Revenue stream</th>
+                  <th class="px-3 py-2 font-medium border-b border-slate-200">Codes</th>
+                  <th class="px-3 py-2 font-medium border-b border-slate-200">Approved year</th>
+                  <th class="px-3 py-2 font-medium border-b border-slate-200">Approved month</th>
+                  <th class="px-3 py-2 font-medium border-b border-slate-200">Collected month</th>
+                </tr>
+              </thead>
+              <tbody id="streamsReportBody" class="divide-y divide-slate-100">
+                <tr class="text-slate-500">
+                  <td colspan="5" class="px-3 py-4 text-center">Loading streams…</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Codes table -->
+        <section class="bg-white border border-slate-200 rounded-md p-4 space-y-3">
+          <div>
+            <h2 class="text-sm font-semibold text-slate-900">Economic codes breakdown</h2>
+            <p class="text-xs text-slate-500">Shows codes (active) and the collected amount for the selected LGA/month.</p>
+          </div>
+
+          <div class="table-wrapper overflow-x-auto rounded-md border border-slate-200/60">
+            <table id="codesTable" class="min-w-full text-xs text-left">
+              <thead class="bg-slate-50 text-slate-600">
+                <tr>
+                  <th class="px-3 py-2 font-medium border-b border-slate-200">Stream</th>
+                  <th class="px-3 py-2 font-medium border-b border-slate-200">Code</th>
+                  <th class="px-3 py-2 font-medium border-b border-slate-200">Name</th>
+                  <th class="px-3 py-2 font-medium border-b border-slate-200">Collected month</th>
+                </tr>
+              </thead>
+              <tbody id="codesReportBody" class="divide-y divide-slate-100">
+                <tr class="text-slate-500">
+                  <td colspan="4" class="px-3 py-4 text-center">Loading codes…</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+    <!-- Supabase client (same as your other pages) -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        const { createClient } = supabase;
+        const SUPABASE_URL = 'https://nljuqchmmyjoxfrugght.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_EBdEwDiYavXVf6iEpV4bNA_8ZOnKQhh';
+        window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      </script>
+
+    <script src="js/lga-report.js"></script>
+    <script>
+      if (window.lucide) lucide.createIcons();
+    </script>
+  </div>
+</body>
+</html>

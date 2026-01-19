@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KTIRS SWCR – Create Revenue Stream</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Favicon -->
+  <link rel="icon" href="../assets/favicon.ico" type="image/x-icon" />
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Inter font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root { --kirs-green: #0b4f3c; --kirs-navy: #16324f; }
+    body { font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif; }
+    .brand-gradient { background: linear-gradient(90deg, var(--kirs-navy), var(--kirs-green)); }
+  </style>
+</head>
+
+<body class="bg-slate-100 text-slate-900">
+<div class="min-h-screen flex flex-col">
+
+  <!-- TOP BAR -->
+  <header class="brand-gradient text-white">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between py-3">
+
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <img src="../assets/images/katsina-state-logo.png" alt="Katsina State Government Logo" class="h-10 w-auto object-contain" />
+            <img src="../assets/images/katsina-irs-logo.png" alt="KTIRS Logo" class="h-10 w-auto object-contain" />
+          </div>
+          <div class="hidden sm:flex flex-col leading-tight">
+            <span class="text-xs uppercase tracking-widest text-slate-200">Katsina State Government</span>
+            <span class="text-sm font-semibold">Katsina State Internal Revenue Service (KTIRS)</span>
+            <span class="text-[11px] text-slate-200">Service-Wide Revenue Collection System</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <div class="hidden sm:flex flex-col text-right text-xs">
+            <span class="font-medium" id="topbarUserName">Admin User</span>
+            <span class="text-slate-200">KTIRS Headquarters</span>
+          </div>
+          <button id="userMenuBtn"
+            class="inline-flex items-center justify-center h-9 w-9 rounded-full border border-slate-200/60 bg-white/10 hover:bg-white/20 transition">
+            <span class="text-sm font-semibold" id="topbarUserInitial">A</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT (no sidebar) -->
+  <main class="flex-1">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+      <!-- Back link -->
+      <div class="flex items-center justify-between">
+        <button type="button"
+          onclick="window.location.href='streams.html'"
+          class="inline-flex items-center gap-2 text-xs text-slate-700 hover:text-slate-900">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i>
+          <span>Back to Revenue Streams</span>
+        </button>
+
+        <span id="pageModeBadge"
+          class="inline-flex items-center rounded-full bg-slate-900 text-slate-50 px-3 py-1 text-[11px] font-medium">
+          New Stream
+        </span>
+      </div>
+
+      <!-- Title -->
+      <div>
+        <h1 class="text-xl font-semibold text-slate-900" id="pageTitle">Create revenue stream</h1>
+        <p class="text-sm text-slate-600">
+          Create a stream and add one economic code. Budgets/targets are configured per year on the budget page.
+        </p>
+      </div>
+
+      <!-- Form card -->
+      <section class="bg-white border border-slate-200 rounded-md p-4 text-xs space-y-4">
+        <form id="streamForm" class="space-y-4" novalidate>
+          <input type="hidden" id="streamId" />
+
+          <!-- Stream fields -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="streamName" class="block mb-1 text-slate-700">Stream name</label>
+              <input
+                type="text"
+                id="streamName"
+                class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                placeholder="e.g. Personal Taxes" />
+              <p class="mt-1 text-[11px] text-slate-500">
+                Use the official naming format used by KTIRS (title case recommended).
+              </p>
+            </div>
+
+            <div>
+              <label for="streamStatus" class="block mb-1 text-slate-700">Stream status</label>
+              <select
+                id="streamStatus"
+                class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+              <p class="mt-1 text-[11px] text-slate-500">
+                Inactive streams can be hidden from officer assignments.
+              </p>
+            </div>
+          </div>
+
+          <!-- Economic code note -->
+          <div class="rounded-md bg-slate-50 border border-slate-200 px-3 py-2 text-[11px] text-slate-600">
+            Add at least one economic code under this stream now. You can add more codes later.
+          </div>
+
+          <!-- Economic code fields -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="economicCode" class="block mb-1 text-slate-700">Economic code</label>
+              <input
+                type="text"
+                id="economicCode"
+                class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                placeholder="e.g. 12010101" />
+              <p class="mt-1 text-[11px] text-slate-500">
+                Code must be unique within this stream.
+              </p>
+            </div>
+
+            <div>
+              <label for="economicCodeName" class="block mb-1 text-slate-700">Economic code name</label>
+              <input
+                type="text"
+                id="economicCodeName"
+                class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                placeholder="e.g. PAYE – Public Service" />
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center justify-between gap-2 pt-2">
+            <button
+              type="submit"
+              id="streamSubmitBtn"
+              class="inline-flex items-center justify-center gap-2 rounded-md bg-slate-900 text-slate-50 px-3 py-2 text-xs font-medium hover:bg-slate-800">
+              <i data-lucide="save" class="w-3.5 h-3.5"></i>
+              <span id="streamSubmitLabel">Save Stream</span>
+            </button>
+
+            <button type="button" id="streamResetBtn" class="text-[11px] text-slate-600 hover:text-slate-800">
+              Clear form
+            </button>
+          </div>
+
+          <p id="streamFormMessage" class="text-[11px] text-slate-500 mt-1"></p>
+        </form>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- Supabase client -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+  const { createClient } = supabase;
+
+  const SUPABASE_URL = 'https://nljuqchmmyjoxfrugght.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_EBdEwDiYavXVf6iEpV4bNA_8ZOnKQhh';
+
+  window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+
+<script src="js/stream-new.js"></script>
+<script>
+  if (window.lucide) lucide.createIcons();
+</script>
+</body>
+</html>

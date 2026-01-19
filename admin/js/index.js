@@ -1,76 +1,109 @@
 // admin/js/index.js
 
-// Sidebar toggle for mobile
+// Elements
 const sidebar = document.getElementById('sidebar');
 const sidebarToggle = document.getElementById('sidebarToggle');
-const logoutBtn = document.getElementById('logoutBtn')
+const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+const logoutBtn = document.getElementById('logoutBtn');
 
-if (sidebar && sidebarToggle) {
+const yearBadge = document.getElementById('currentYearBadge');
+
+const statLgas = document.getElementById('statLgas');
+const statOfficers = document.getElementById('statOfficers');
+const statStreams = document.getElementById('statStreams');
+const statCodes = document.getElementById('statCodes');
+const statMonthlyTarget = document.getElementById('statMonthlyTarget');
+const statMonthActual = document.getElementById('statMonthActual');
+
+const recentActivityList = document.getElementById('recentActivityList');
+
+// Helpers
+function formatNaira(amount) {
+  const v = Number(amount || 0);
+  return (
+    '₦' +
+    v.toLocaleString('en-NG', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })
+  );
+}
+
+function setText(el, value) {
+  if (!el) return;
+  el.textContent = value;
+}
+
+function getMonthStartDate(d = new Date()) {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+
+function getMonthEndDateExclusive(d = new Date()) {
+  return new Date(d.getFullYear(), d.getMonth() + 1, 1);
+}
+
+// Sidebar toggle (mobile)
+function openSidebar() {
+  if (!sidebar) return;
+  sidebar.classList.remove('-translate-x-full');
+  if (sidebarBackdrop) sidebarBackdrop.classList.remove('hidden');
+}
+function closeSidebar() {
+  if (!sidebar) return;
+  sidebar.classList.add('-translate-x-full');
+  if (sidebarBackdrop) sidebarBackdrop.classList.add('hidden');
+}
+
+if (sidebarToggle) {
   sidebarToggle.addEventListener('click', () => {
     const isHidden = sidebar.classList.contains('-translate-x-full');
-    if (isHidden) {
-      sidebar.classList.remove('-translate-x-full');
-    } else {
-      sidebar.classList.add('-translate-x-full');
+    if (isHidden) openSidebar();
+    else closeSidebar();
+  });
+}
+
+if (sidebarBackdrop) {
+  sidebarBackdrop.addEventListener('click', () => closeSidebar());
+}
+
+// Logout
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', async () => {
+    const supabase = window.supabaseClient;
+    if (!supabase) {
+      window.location.href = '../index.html';
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Logout error:', error);
+        alert('Unable to log out right now. Please try again.');
+        return;
+      }
+      window.location.href = '../index.html';
+    } catch (e) {
+      console.error('Unexpected logout error:', e);
+      window.location.href = '../index.html';
     }
   });
 }
 
-if (logoutBtn) {
-    logoutBtn.addEventListener('click', async () => {
-      const supabase = window.supabaseClient;
-      if (!supabase) {
-        window.location.href = '../index.html';
-        return;
-      }
-  
-      try {
-        const { error } = await supabase.auth.signOut();
-        if (error) {
-          console.error('Logout error:', error);
-          alert('Unable to log out right now. Please try again.');
-          return;
-        }
-        window.location.href = '../index.html';
-      } catch (e) {
-        console.error('Unexpected logout error:', e);
-        window.location.href = '../index.html';
-      }
-    });
-  }
-
 // Set current year badge
-const yearBadge = document.getElementById('currentYearBadge');
-if (yearBadge) {
-  yearBadge.textContent = new Date().getFullYear().toString();
-}
+if (yearBadge) yearBadge.textContent = new Date().getFullYear().toString();
 
-// Stat elements
-const statMdas = document.getElementById('statMdas');
-const statUsers = document.getElementById('statUsers');
-const statSources = document.getElementById('statSources');
-const statBudget = document.getElementById('statBudget');
-
-// Recent activity container
-const recentActivityList = (() => {
-  const sideBox = document.querySelector(
-    'div.bg-white.border.border-slate-200.rounded-md.p-4:nth-of-type(2) ul'
-  );
-  return sideBox || null;
-})();
-
-// Load current logged-in admin and dashboard stats
+// Main load
 (async () => {
   const supabase = window.supabaseClient;
   if (!supabase) return;
 
-  // 1) Get current session/user
+  // 1) Session check
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   if (sessionError || !sessionData.session || !sessionData.session.user) {
     window.location.href = '../index.html';
     return;
   }
-
   const user = sessionData.session.user;
 
   // 2) Load profile
@@ -82,15 +115,17 @@ const recentActivityList = (() => {
 
   if (profileError || !profile) {
     console.warn('Profile not found for current user', profileError);
-  }
-
-  // 3) Only allow admins on this page
-  if (!profile || profile.global_role !== 'admin') {
     window.location.href = '../index.html';
     return;
   }
 
-  // 4) Populate UI with name and initials
+  // 3) Only admins
+  if (profile.global_role !== 'admin') {
+    window.location.href = '../index.html';
+    return;
+  }
+
+  // 4) Populate topbar
   const name =
     profile.full_name && profile.full_name.trim().length > 0
       ? profile.full_name.trim()
@@ -102,155 +137,167 @@ const recentActivityList = (() => {
   const topbarUserInitial = document.getElementById('topbarUserInitial');
   const loggedInAsBadge = document.getElementById('loggedInAsBadge');
 
-  if (topbarUserName) {
-    topbarUserName.textContent = name;
-  }
-  if (topbarUserInitial) {
-    topbarUserInitial.textContent = initial;
-  }
-  if (loggedInAsBadge) {
-    loggedInAsBadge.textContent = `${name} (KTIRS HQ)`;
-  }
+  setText(topbarUserName, name);
+  setText(topbarUserInitial, initial);
+  setText(loggedInAsBadge, `${name} (KTIRS HQ)`);
 
-  // 5) Load dashboard stats in parallel
+  // 5) Load stats (safe: each query handles failure)
+  // Notes:
+  // - counts use { count: 'exact', head: true } which returns count in the `count` property. (Supabase docs) [web:23]
+  let lgasCount = null;
+  let officersCount = null;
+  let streamsCount = null;
+  let codesCount = null;
 
-  // Registered MDAs (active)
-  const mdasPromise = supabase
-    .from('mdas')
-    .select('id', { count: 'exact', head: true })
-    .eq('is_active', true);
-
-  // Active users (admins + mda_user)
-  const usersPromise = supabase
-    .from('profiles')
-    .select('id', { count: 'exact', head: true })
-    .in('global_role', ['admin', 'mda_user']);
-
-  // Revenue sources (active)
-  const sourcesPromise = supabase
-    .from('revenue_sources')
-    .select('id', { count: 'exact', head: true })
-    .eq('is_active', true);
-
-  // Approved NTR budget = sum of approved_budget over all revenue_sources
-  const budgetsPromise = supabase
-    .from('revenue_sources')
-    .select('approved_budget');
-
-  // Recent activity from revenue_sources and mda_budgets
-  const recentSourcesPromise = supabase
-    .from('revenue_sources')
-    .select('id, name, code, mda_id, created_at, updated_at')
-    .order('updated_at', { ascending: false })
-    .limit(5);
-
-  const recentBudgetsPromise = supabase
-    .from('mda_budgets')
-    .select('id, mda_id, year, approved_ntr, created_at, updated_at')
-    .order('updated_at', { ascending: false })
-    .limit(5);
-
-  const [
-    { count: mdasCount },
-    { count: usersCount },
-    { count: sourcesCount },
-    { data: budgetsRows },
-    { data: recentSources },
-    { data: recentBudgets }
-  ] = await Promise.all([
-    mdasPromise,
-    usersPromise,
-    sourcesPromise,
-    budgetsPromise,
-    recentSourcesPromise,
-    recentBudgetsPromise
-  ]);
-
-  // Registered MDAs
-  if (statMdas && typeof mdasCount === 'number') {
-    statMdas.textContent = mdasCount.toString();
+  try {
+    const { count } = await supabase
+      .from('lgas')
+      .select('id', { count: 'exact', head: true });
+    lgasCount = typeof count === 'number' ? count : null;
+  } catch (e) {
+    console.warn('LGAs count failed', e);
   }
 
-  // Active users
-  if (statUsers && typeof usersCount === 'number') {
-    statUsers.textContent = usersCount.toString();
+  try {
+    const { count } = await supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('global_role', 'officer');
+    officersCount = typeof count === 'number' ? count : null;
+  } catch (e) {
+    console.warn('Officers count failed', e);
   }
 
-  // Revenue sources
-  if (statSources && typeof sourcesCount === 'number') {
-    statSources.textContent = sourcesCount.toString();
+  try {
+    const { count } = await supabase
+      .from('revenue_streams')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_active', true);
+    streamsCount = typeof count === 'number' ? count : null;
+  } catch (e) {
+    console.warn('Streams count failed', e);
   }
 
-  // Approved NTR budget (sum approved_budget)
-  let totalApprovedBudget = 0;
-  if (Array.isArray(budgetsRows)) {
-    budgetsRows.forEach((row) => {
-      const v = Number(row.approved_budget);
-      if (!Number.isNaN(v)) totalApprovedBudget += v;
-    });
+  try {
+    const { count } = await supabase
+      .from('economic_codes')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_active', true);
+    codesCount = typeof count === 'number' ? count : null;
+  } catch (e) {
+    console.warn('Codes count failed', e);
   }
-  if (statBudget) {
-    statBudget.textContent =
-      '₦' +
-      totalApprovedBudget.toLocaleString('en-NG', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+
+  setText(statLgas, lgasCount === null ? '—' : String(lgasCount));
+  setText(statOfficers, officersCount === null ? '—' : String(officersCount));
+  setText(statStreams, streamsCount === null ? '—' : String(streamsCount));
+  setText(statCodes, codesCount === null ? '—' : String(codesCount));
+
+  // Monthly target: sum economic_codes.monthly_budget
+  let monthlyTargetTotal = 0;
+  try {
+    const { data: codeBudgets, error } = await supabase
+      .from('economic_codes')
+      .select('monthly_budget')
+      .eq('is_active', true);
+
+    if (!error && Array.isArray(codeBudgets)) {
+      codeBudgets.forEach((row) => {
+        const v = Number(row.monthly_budget);
+        if (!Number.isNaN(v)) monthlyTargetTotal += v;
       });
+    }
+  } catch (e) {
+    console.warn('Monthly target sum failed', e);
   }
+  setText(statMonthlyTarget, formatNaira(monthlyTargetTotal));
 
-  // 6) Recent administrative activity
+  // Actual this month: sum collections.amount_collected for current month
+  const monthStart = getMonthStartDate(new Date());
+  const monthEndExclusive = getMonthEndDateExclusive(new Date());
+
+  let monthActualTotal = 0;
+  try {
+    const { data: monthRows, error } = await supabase
+      .from('collections')
+      .select('amount_collected, submitted_at')
+      .gte('submitted_at', monthStart.toISOString())
+      .lt('submitted_at', monthEndExclusive.toISOString());
+
+    if (!error && Array.isArray(monthRows)) {
+      monthRows.forEach((row) => {
+        const v = Number(row.amount_collected);
+        if (!Number.isNaN(v)) monthActualTotal += v;
+      });
+    }
+  } catch (e) {
+    console.warn('Month actual sum failed', e);
+  }
+  setText(statMonthActual, formatNaira(monthActualTotal));
+
+  // 6) Recent submissions (last 8)
   if (recentActivityList) {
     recentActivityList.innerHTML = '';
 
-    const activities = [];
+    try {
+      // Pull last submissions with LGA + economic code (nesting relies on FK relations) [web:37]
+      const { data: recents, error } = await supabase
+        .from('collections')
+        .select('id, officer_id, month_year, amount_collected, submitted_at, lgas(name), economic_codes(code, name)')
+        .order('submitted_at', { ascending: false })
+        .limit(8);
 
-    // Revenue source updates
-    (recentSources || []).forEach((src) => {
-      activities.push({
-        type: 'source',
-        timestamp: src.updated_at || src.created_at,
-        text: `Revenue source “${src.name}” (${src.code}) updated.`,
-      });
-    });
+      if (error) throw error;
 
-    // Budget updates
-    (recentBudgets || []).forEach((b) => {
-      activities.push({
-        type: 'budget',
-        timestamp: b.updated_at || b.created_at,
-        text: `Budget for year ${b.year} updated (₦${Number(b.approved_ntr || 0).toLocaleString(
-          'en-NG',
-          { maximumFractionDigits: 2 }
-        )}).`,
-      });
-    });
+      if (!recents || recents.length === 0) {
+        const li = document.createElement('li');
+        li.textContent = '— No submissions recorded yet.';
+        li.className = 'text-xs text-slate-600';
+        recentActivityList.appendChild(li);
+        return;
+      }
 
-    // Sort by timestamp desc, take top 8
-    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    const topActivities = activities.slice(0, 8);
+      // Map officer ids => names (optional, best-effort)
+      const officerIds = [...new Set(recents.map(r => r.officer_id).filter(Boolean))];
+      let officerNameMap = {};
 
-    if (topActivities.length === 0) {
-      const li = document.createElement('li');
-      li.textContent = '— No activity recorded yet.';
-      li.className = 'text-xs text-slate-600';
-      recentActivityList.appendChild(li);
+      if (officerIds.length > 0) {
+        const { data: officers, error: officersError } = await supabase
+          .from('profiles')
+          .select('user_id, full_name')
+          .in('user_id', officerIds);
 
-      const liHint = document.createElement('li');
-      liHint.textContent =
-        'Once implemented, this section will show configuration changes (e.g. new user created, budget updated).';
-      liHint.className = 'text-[11px] text-slate-500';
-      recentActivityList.appendChild(liHint);
-    } else {
-      topActivities.forEach((act) => {
+        if (!officersError && Array.isArray(officers)) {
+          officers.forEach(o => {
+            officerNameMap[o.user_id] = (o.full_name || '').trim() || o.user_id;
+          });
+        }
+      }
+
+      recents.forEach((r) => {
         const li = document.createElement('li');
         li.className = 'text-xs text-slate-600';
 
-        const time = new Date(act.timestamp);
-        const timeLabel = isNaN(time.getTime()) ? '' : ` – ${time.toLocaleString()}`;
+        const time = new Date(r.submitted_at);
+        const timeLabel = isNaN(time.getTime()) ? '' : time.toLocaleString();
 
-        li.textContent = act.text + timeLabel;
+        const officerName = r.officer_id ? (officerNameMap[r.officer_id] || 'Officer') : 'Officer';
+        const lgaName = r.lgas && r.lgas.name ? r.lgas.name : 'LGA';
+        const codeName =
+          r.economic_codes
+            ? `${r.economic_codes.code || ''}${r.economic_codes.name ? ' – ' + r.economic_codes.name : ''}`.trim()
+            : 'Code';
+
+        li.textContent = `${officerName} submitted ${formatNaira(r.amount_collected)} for ${lgaName} (${codeName}) – ${timeLabel}`;
         recentActivityList.appendChild(li);
       });
+
+    } catch (e) {
+      console.warn('Recent activity failed', e);
+      const li = document.createElement('li');
+      li.textContent = '— Unable to load recent submissions.';
+      li.className = 'text-xs text-slate-600';
+      recentActivityList.appendChild(li);
     }
   }
 })();

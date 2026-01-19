@@ -88,8 +88,8 @@ loginForm.addEventListener('submit', async function (e) {
     // 3) Redirect based on role
     if (role === 'admin') {
       window.location.href = '/admin/index.html';
-    } else if (role === 'mda_user') {
-      window.location.href = '/mda/index.html';
+    } else if (role === 'officer') {
+      window.location.href = '/officers/index.html';
     } else {
       errorMsg.textContent = 'You do not have access to this system.';
       loginBtn.textContent = 'Sign in';

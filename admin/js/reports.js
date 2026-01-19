@@ -1,669 +1,648 @@
-// admin/js/reports.js - FIXED VERSION
+// admin/js/reports.js
+(() => {
+  const sb = window.supabaseClient;
+  if (!sb) throw new Error('window.supabaseClient missing');
 
-const sidebar = document.getElementById('sidebar');
-const sidebarToggle = document.getElementById('sidebarToggle');
-const logoutBtn = document.getElementById('logoutBtn');
+  // ===== CONFIG =====
+  const LOGO_URL = "../assets/images/katsina-irs-logo.png";
 
-if (sidebar && sidebarToggle) {
-  sidebarToggle.addEventListener('click', () => {
-    const isHidden = sidebar.classList.contains('-translate-x-full');
-    if (isHidden) sidebar.classList.remove('-translate-x-full');
-    else sidebar.classList.add('-translate-x-full');
-  });
-}
+  // Branding
+  const BRAND_RED = [223, 38, 39];   // #df2627
+  const BRAND_GREEN = [67, 140, 80]; // #438c50
+  const BRAND_BLACK = [8, 6, 5];     // #080605
 
-if (logoutBtn) {
-  logoutBtn.addEventListener('click', async () => {
-    const supabase = window.supabaseClient;
-    if (!supabase) {
-      window.location.href = '../index.html';
-      return;
-    }
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Logout error:', error);
-        alert('Unable to log out right now. Please try again.');
-        return;
-      }
-      window.location.href = '../index.html';
-    } catch (e) {
-      console.error('Unexpected logout error:', e);
-      window.location.href = '../index.html';
-    }
-  });
-}
-
-// DOM refs
-const reportYearBadge = document.getElementById('reportYearBadge');
-const reportYearSelect = document.getElementById('reportYear');
-const reportMonthSelect = document.getElementById('reportMonth');
-const reportZoneSelect = document.getElementById('reportZone');
-const reportLgaSelect = document.getElementById('reportLga');
-const reportStatus = document.getElementById('reportStatus');
-const reportSummary = document.getElementById('reportSummary');
-const reportTableBody = document.getElementById('reportTableBody');
-
-const btnGenerateReport = document.getElementById('btnGenerateReport');
-const btnExportExcel = document.getElementById('btnExportExcel');
-const btnExportPdf = document.getElementById('btnExportPdf');
-
-let allZones = [];
-let allLgas = [];
-let allMdas = [];
-let allMdaBudgets = []; // Store MDA budgets for calculations
-let currentReportRows = [];
-
-// Helpers
-function formatCurrency(value) {
-  const num = Number(value || 0);
-  return '₦' + num.toLocaleString('en-NG', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
-}
-
-function mapMonthName(m) {
-  const months = [
-    '', 'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+  const MONTHS = [
+    { key: 'Jan', idx: 0 }, { key: 'Feb', idx: 1 }, { key: 'Mar', idx: 2 }, { key: 'Apr', idx: 3 },
+    { key: 'May', idx: 4 }, { key: 'Jun', idx: 5 }, { key: 'Jul', idx: 6 }, { key: 'Aug', idx: 7 },
+    { key: 'Sep', idx: 8 }, { key: 'Oct', idx: 9 }, { key: 'Nov', idx: 10 }, { key: 'Dec', idx: 11 },
   ];
-  return months[m] || '';
-}
 
-// Main load
-(async () => {
-  const supabase = window.supabaseClient;
-  if (!supabase) return;
-
-  // 1) Auth
-  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-  if (sessionError || !sessionData.session || !sessionData.session.user) {
-    window.location.href = '../index.html';
-    return;
-  }
-  const user = sessionData.session.user;
-
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('full_name, global_role')
-    .eq('user_id', user.id)
-    .single();
-
-  if (profileError || !profile || profile.global_role !== 'admin') {
-    window.location.href = '../index.html';
-    return;
-  }
-
-  const name =
-    profile.full_name && profile.full_name.trim().length > 0
-      ? profile.full_name.trim()
-      : user.email || 'Admin User';
-  const initial = name.charAt(0).toUpperCase();
+  // ===== Elements =====
+  const sidebar = document.getElementById('sidebar');
+  const sidebarToggle = document.getElementById('sidebarToggle');
+  const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+  const logoutBtn = document.getElementById('logoutBtn');
 
   const topbarUserName = document.getElementById('topbarUserName');
   const topbarUserInitial = document.getElementById('topbarUserInitial');
-  if (topbarUserName) topbarUserName.textContent = name;
-  if (topbarUserInitial) topbarUserInitial.textContent = initial;
 
-  // 2) Load zones, LGAs, MDAs
-  const { data: zones, error: zonesError } = await supabase
-    .from('zones')
-    .select('id, name')
-    .order('name', { ascending: true });
+  const yearPicker = document.getElementById('yearPicker');
+  const viewMode = document.getElementById('viewMode');
 
-  const { data: lgas, error: lgasError } = await supabase
-    .from('lgas')
-    .select('id, name, zone_id')
-    .order('name', { ascending: true });
+  const lgaFilter = document.getElementById('lgaFilter');
+  const streamFilter = document.getElementById('streamFilter');
+  const searchBox = document.getElementById('searchBox');
+  const refreshBtn = document.getElementById('refreshBtn');
 
-  const { data: mdas, error: mdasError } = await supabase
-    .from('mdas')
-    .select('id, name, code')
-    .order('name', { ascending: true });
+  const exportExcelBtn = document.getElementById('exportExcelBtn');
+  const exportPdfBtn = document.getElementById('exportPdfBtn');
 
-  if (zonesError) console.error('Error loading zones:', zonesError);
-  if (lgasError) console.error('Error loading LGAs:', lgasError);
-  if (mdasError) console.error('Error loading MDAs:', mdasError);
+  const cardYear = document.getElementById('cardYear');
+  const cardScope = document.getElementById('cardScope');
+  const cardLgas = document.getElementById('cardLgas');
+  const cardStreams = document.getElementById('cardStreams');
+  const cardTotalCollected = document.getElementById('cardTotalCollected');
 
-  allZones = zones || [];
-  allLgas = lgas || [];
-  allMdas = mdas || [];
+  const tableSubtitle = document.getElementById('tableSubtitle');
+  const rowCount = document.getElementById('rowCount');
+  const annualTableHead = document.getElementById('annualTableHead');
+  const annualTableBody = document.getElementById('annualTableBody');
 
-  // Populate selects
-  if (reportZoneSelect) {
-    allZones.forEach((z) => {
-      const opt = document.createElement('option');
-      opt.value = String(z.id);
-      opt.textContent = z.name;
-      reportZoneSelect.appendChild(opt);
+  // ===== Helpers =====
+  function safeText(s) {
+    return String(s ?? '').replace(/[&<>"']/g, (m) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    }[m]));
+  }
+
+  // Export and table: numbers only (avoid ₦ encoding issues)
+  function formatNumber(n) {
+    const v = Number(n || 0);
+    return v.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function nowStamp() {
+    return new Date().toLocaleString();
+  }
+
+  function yearTitle(y) {
+    return `YEAR ${y}`;
+  }
+
+  async function fetchAsDataURL(url) {
+    const res = await fetch(url, { cache: 'no-cache' });
+    if (!res.ok) throw new Error(`Logo fetch failed: ${res.status}`);
+    const blob = await res.blob();
+    return await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(blob);
     });
   }
 
-  if (reportLgaSelect) {
-    allLgas.forEach((l) => {
-      const opt = document.createElement('option');
-      opt.value = String(l.id);
-      opt.textContent = l.name;
-      reportLgaSelect.appendChild(opt);
-    });
-  }
-
-  // 3) Load years
-  const { data: yearRows, error: yearError } = await supabase
-    .from('revenues')
-    .select('revenue_date')
-    .limit(1000);
-
-  if (yearError) {
-    console.error('Error loading revenues years:', yearError);
-  }
-
-  const yearsSet = new Set();
-  (yearRows || []).forEach((r) => {
-    const d = r.revenue_date ? new Date(r.revenue_date) : null;
-    if (d && !isNaN(d.getTime())) {
-      yearsSet.add(d.getFullYear());
+  function setLoading(msg) {
+    if (tableSubtitle) tableSubtitle.textContent = msg || 'Loading…';
+    if (annualTableBody) {
+      annualTableBody.innerHTML = `
+        <tr class="text-slate-500">
+          <td class="px-3 py-4 text-center" colspan="16">${safeText(msg || 'Loading…')}</td>
+        </tr>`;
     }
-  });
+  }
 
-  const years = Array.from(yearsSet).sort((a, b) => b - a);
-  const currentYear = new Date().getFullYear();
-  if (!yearsSet.has(currentYear)) years.unshift(currentYear);
+  function populateYearSelect(el) {
+    const now = new Date().getFullYear();
+    const years = [now - 1, now, now + 1, now + 2];
+    el.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
+    el.value = String(now);
+  }
 
-  if (reportYearSelect) {
-    years.forEach((y) => {
-      const opt = document.createElement('option');
-      opt.value = String(y);
-      opt.textContent = String(y);
-      reportYearSelect.appendChild(opt);
+  function fillSelect(el, placeholder, rows, getValue, getLabel) {
+    el.innerHTML = [
+      `<option value="all">${placeholder}</option>`,
+      ...rows.map(r => `<option value="${safeText(getValue(r))}">${safeText(getLabel(r))}</option>`)
+    ].join('');
+  }
+
+  function debounce(fn, wait = 250) {
+    let t = null;
+    return (...args) => {
+      clearTimeout(t);
+      t = setTimeout(() => fn(...args), wait);
+    };
+  }
+
+  // ===== State =====
+  let selectedYear = new Date().getFullYear();
+  let selectedView = 'collected'; // collected | budget | both
+
+  let allLgas = [];
+  let allStreams = [];
+  let activeStreams = [];
+  let allCodes = [];
+
+  let streamNameById = new Map();
+  let lgaNameById = new Map();
+  let codeToStream = new Map();
+
+  // streamId => { annual, monthly }
+  let budgetsByStreamYear = new Map();
+
+  // Matrix rows (cartesian of LGAs × Streams) with values per month
+  // { lgaId, streamId, lgaName, streamName, collected[12], budget[12], collectedTotal, budgetTotal }
+  let matrixRows = [];
+
+  // ===== Auth =====
+  async function requireAdmin() {
+    const { data: sessionData } = await sb.auth.getSession();
+    const user = sessionData?.session?.user;
+    if (!user) { window.location.href = '../index.html'; return null; }
+
+    const { data: profile } = await sb
+      .from('profiles')
+      .select('full_name, global_role')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!profile || profile.global_role !== 'admin') {
+      window.location.href = '../index.html';
+      return null;
+    }
+
+    const name = (profile.full_name || '').trim() || user.email || 'Admin User';
+    if (topbarUserName) topbarUserName.textContent = name;
+    if (topbarUserInitial) topbarUserInitial.textContent = name.charAt(0).toUpperCase();
+    return { user, profile };
+  }
+
+  // ===== Sidebar =====
+  function openSidebar() {
+    if (!sidebar) return;
+    sidebar.classList.remove('-translate-x-full');
+    if (sidebarBackdrop) sidebarBackdrop.classList.remove('hidden');
+  }
+  function closeSidebar() {
+    if (!sidebar) return;
+    sidebar.classList.add('-translate-x-full');
+    if (sidebarBackdrop) sidebarBackdrop.classList.add('hidden');
+  }
+  function setupSidebar() {
+    if (sidebarToggle) sidebarToggle.addEventListener('click', () => {
+      if (sidebar.classList.contains('-translate-x-full')) openSidebar();
+      else closeSidebar();
     });
-    reportYearSelect.value = String(currentYear);
+    if (sidebarBackdrop) sidebarBackdrop.addEventListener('click', closeSidebar);
+    window.addEventListener('resize', () => {
+      if (window.innerWidth >= 640) {
+        if (sidebarBackdrop) sidebarBackdrop.classList.add('hidden');
+        if (sidebar) sidebar.classList.remove('-translate-x-full');
+      } else {
+        if (sidebar) sidebar.classList.add('-translate-x-full');
+      }
+    });
   }
-  if (reportYearBadge) {
-    reportYearBadge.textContent = String(currentYear);
+
+  async function logout() {
+    await sb.auth.signOut();
+    window.location.href = '../index.html';
   }
 
-  // 4) Load MDA budgets
-  const { data: mdaBudgetsData, error: budgetsError } = await supabase
-    .from('mda_budgets')
-    .select('mda_id, year, approved_ntr')
-    .order('year', { ascending: false });
+  // ===== Data loaders =====
+  async function loadGlobals() {
+    const [{ data: lgas, error: lErr }, { data: streams, error: sErr }, { data: codes, error: cErr }] =
+      await Promise.all([
+        sb.from('lgas').select('id, name, is_active').order('name', { ascending: true }),
+        sb.from('revenue_streams').select('id, name, is_active').order('name', { ascending: true }),
+        sb.from('economic_codes').select('id, revenue_stream_id, code, name, is_active').eq('is_active', true)
+      ]);
 
-  if (budgetsError) {
-    console.error('Error loading MDA budgets:', budgetsError);
+    if (lErr) throw lErr;
+    if (sErr) throw sErr;
+    if (cErr) throw cErr;
+
+    allLgas = (lgas || []).filter(x => x.is_active === true);
+    allStreams = streams || [];
+    activeStreams = allStreams.filter(s => s.is_active === true);
+    allCodes = codes || [];
+
+    lgaNameById = new Map(allLgas.map(l => [l.id, l.name]));
+    streamNameById = new Map(allStreams.map(s => [s.id, s.name]));
+    codeToStream = new Map(allCodes.map(c => [c.id, c.revenue_stream_id]));
+
+    fillSelect(lgaFilter, 'All LGAs', allLgas, r => r.id, r => r.name);
+    fillSelect(streamFilter, 'All Streams', activeStreams, r => r.id, r => r.name);
   }
-  allMdaBudgets = mdaBudgetsData || [];
 
-  // Initial button state
-  if (btnExportExcel) btnExportExcel.disabled = true;
-  if (btnExportPdf) btnExportPdf.disabled = true;
-})();
+  async function loadBudgets(year) {
+    budgetsByStreamYear = new Map();
 
-// Generate report
-if (btnGenerateReport) {
-  btnGenerateReport.addEventListener('click', async () => {
-    const supabase = window.supabaseClient;
-    if (!supabase) return;
+    const { data, error } = await sb
+      .from('revenue_stream_budgets')
+      .select('revenue_stream_id, year, annual_budget, monthly_target')
+      .eq('year', year);
 
-    const year = reportYearSelect && reportYearSelect.value
-      ? Number(reportYearSelect.value)
-      : null;
-    const month = reportMonthSelect && reportMonthSelect.value
-      ? Number(reportMonthSelect.value)
-      : null;
-    const zoneId = reportZoneSelect && reportZoneSelect.value
-      ? Number(reportZoneSelect.value)
-      : null;
-    const lgaId = reportLgaSelect && reportLgaSelect.value
-      ? Number(reportLgaSelect.value)
-      : null;
-
-    if (!year) {
-      reportStatus.textContent = 'Please select a year.';
+    if (error) {
+      console.warn('Budget load error:', error);
       return;
     }
 
-    reportStatus.textContent = 'Loading report data...';
-    if (btnExportExcel) btnExportExcel.disabled = true;
-    if (btnExportPdf) btnExportPdf.disabled = true;
-
-    try {
-      let query = supabase
-        .from('revenues')
-        .select(`
-          id,
-          amount,
-          revenue_date,
-          mda_id,
-          zone_id,
-          lga_id,
-          mdas ( name, code ),
-          zones ( name ),
-          lgas ( name ),
-          revenue_sources ( id, name, code )
-        `)
-        .order('revenue_date', { ascending: true });
-
-      query = query.gte('revenue_date', `${year}-01-01`).lte('revenue_date', `${year}-12-31`);
-
-      if (month) {
-        const monthStr = month.toString().padStart(2, '0');
-        const start = `${year}-${monthStr}-01`;
-        const endDate = new Date(year, month, 0).getDate();
-        const end = `${year}-${monthStr}-${endDate.toString().padStart(2, '0')}`;
-        query = query.gte('revenue_date', start).lte('revenue_date', end);
-      }
-
-      if (zoneId) query = query.eq('zone_id', zoneId);
-      if (lgaId) query = query.eq('lga_id', lgaId);
-
-      const { data, error } = await query;
-      if (error) {
-        console.error('Report query error:', error);
-        reportStatus.textContent = 'Unable to load report data. Please try again.';
-        renderReportTable([]);
-        return;
-      }
-
-      currentReportRows = data || [];
-      renderReportTable(currentReportRows);
-
-      const total = currentReportRows.reduce(
-        (sum, r) => sum + Number(r.amount || 0),
-        0
-      );
-      const monthLabel = month ? mapMonthName(month) : 'All months';
-      const zoneLabel = zoneId
-        ? (allZones.find((z) => z.id === zoneId)?.name || `Zone ${zoneId}`)
-        : 'All zones';
-      const lgaLabel = lgaId
-        ? (allLgas.find((l) => l.id === lgaId)?.name || `LGA ${lgaId}`)
-        : 'All LGAs';
-
-      reportSummary.textContent =
-        `Total records: ${currentReportRows.length.toString()} • Total amount: ${formatCurrency(total)} • ` +
-        `${year}, ${monthLabel}, ${zoneLabel}, ${lgaLabel}.`;
-      reportStatus.textContent = 'Report loaded. You can now export as Excel or PDF.';
-
-      if (btnExportExcel) btnExportExcel.disabled = currentReportRows.length === 0;
-      if (btnExportPdf) btnExportPdf.disabled = currentReportRows.length === 0;
-    } catch (err) {
-      console.error('Unexpected report error:', err);
-      reportStatus.textContent = 'Unexpected error while loading report.';
-      renderReportTable([]);
-    }
-  });
-}
-
-// Render table
-function renderReportTable(rows) {
-  if (!reportTableBody) return;
-
-  reportTableBody.innerHTML = '';
-
-  if (!rows || rows.length === 0) {
-    const tr = document.createElement('tr');
-    const td = document.createElement('td');
-    td.colSpan = 6;
-    td.className = 'px-3 py-4 text-center text-slate-500';
-    td.textContent = 'No data to display.';
-    tr.appendChild(td);
-    reportTableBody.appendChild(tr);
-    return;
+    (data || []).forEach(b => {
+      budgetsByStreamYear.set(b.revenue_stream_id, {
+        annual: Number(b.annual_budget || 0),
+        monthly: Number(b.monthly_target || 0)
+      });
+    });
   }
 
-  rows.forEach((r) => {
-    const tr = document.createElement('tr');
-    tr.className = 'hover:bg-slate-50';
+  async function loadCollections(year) {
+    const start = `${year}-01-01`;
+    const end = `${Number(year) + 1}-01-01`;
 
-    const date = r.revenue_date ? new Date(r.revenue_date) : null;
-    const dateLabel = date && !isNaN(date.getTime())
-      ? date.toLocaleDateString('en-NG')
-      : '';
+    const { data, error } = await sb
+      .from('collections')
+      .select('lga_id, economic_code_id, month_year, amount_collected')
+      .gte('month_year', start)
+      .lt('month_year', end);
 
-    const zoneName = r.zones?.name || '';
-    const lgaName = r.lgas?.name || '';
-    const mdaName = r.mdas?.name || '';
-    const sourceName = r.revenue_sources?.name || '';
+    if (error) {
+      console.warn('Collections load error:', error);
+      return [];
+    }
+    return data || [];
+  }
 
-    const tdDate = document.createElement('td');
-    tdDate.className = 'px-3 py-2 align-middle';
-    tdDate.textContent = dateLabel;
-    tr.appendChild(tdDate);
+  // ===== Build matrix =====
+  function buildEmptyMatrix() {
+    const rows = [];
 
-    const tdZone = document.createElement('td');
-    tdZone.className = 'px-3 py-2 align-middle';
-    tdZone.textContent = zoneName || '—';
-    tr.appendChild(tdZone);
+    for (const lga of allLgas) {
+      for (const stream of activeStreams) {
+        const b = budgetsByStreamYear.get(stream.id) || { annual: 0, monthly: 0 };
 
-    const tdLga = document.createElement('td');
-    tdLga.className = 'px-3 py-2 align-middle';
-    tdLga.textContent = lgaName || '—';
-    tr.appendChild(tdLga);
+        // Monthly budget defaults to the stream monthly_target for every month (0 if missing)
+        const budgetMonths = Array(12).fill(Number(b.monthly || 0));
+        const budgetTotal = Number(b.annual || 0);
 
-    const tdMda = document.createElement('td');
-    tdMda.className = 'px-3 py-2 align-middle';
-    tdMda.textContent = mdaName || '—';
-    tr.appendChild(tdMda);
+        rows.push({
+          lgaId: lga.id,
+          streamId: stream.id,
+          lgaName: lga.name,
+          streamName: stream.name,
+          collected: Array(12).fill(0),
+          budget: budgetMonths,
+          collectedTotal: 0,
+          budgetTotal
+        });
+      }
+    }
+    return rows;
+  }
 
-    const tdSource = document.createElement('td');
-    tdSource.className = 'px-3 py-2 align-middle';
-    tdSource.textContent = sourceName || '—';
-    tr.appendChild(tdSource);
+  function applyCollectionsToMatrix(rows, collections) {
+    const idx = new Map();
+    rows.forEach((r, i) => idx.set(`${r.lgaId}:${r.streamId}`, i));
 
-    const tdAmount = document.createElement('td');
-    tdAmount.className = 'px-3 py-2 align-middle text-right';
-    tdAmount.textContent = formatCurrency(r.amount);
-    tr.appendChild(tdAmount);
+    for (const rec of collections) {
+      if (!rec?.lga_id || !rec?.economic_code_id || !rec?.month_year) continue;
 
-    reportTableBody.appendChild(tr);
-  });
-}
+      const streamId = codeToStream.get(rec.economic_code_id);
+      if (!streamId) continue;
 
-// Excel export - Professional format with CORRECT MDA budget calculations
-if (btnExportExcel) {
-  btnExportExcel.addEventListener('click', async () => {
-    if (!currentReportRows || currentReportRows.length === 0) return;
-    if (typeof XLSX === 'undefined') {
-      alert('Excel export library not loaded.');
+      const key = `${rec.lga_id}:${streamId}`;
+      const i = idx.get(key);
+      if (i === undefined) continue;
+
+      const m = new Date(rec.month_year).getMonth();
+      if (m < 0 || m > 11) continue;
+
+      const amt = Number(rec.amount_collected || 0);
+      rows[i].collected[m] += amt;
+      rows[i].collectedTotal += amt;
+    }
+  }
+
+  // ===== Filtering / rendering =====
+  function getScopeLabel() {
+    const lgaVal = lgaFilter?.value || 'all';
+    const streamVal = streamFilter?.value || 'all';
+    const lgaLabel = lgaVal === 'all' ? 'All LGAs' : (lgaNameById.get(lgaVal) || 'LGA');
+    const streamLabel = streamVal === 'all' ? 'All streams' : (streamNameById.get(streamVal) || 'Stream');
+    return `${lgaLabel} / ${streamLabel}`;
+  }
+
+  function getFilteredRows() {
+    const lgaVal = lgaFilter?.value || 'all';
+    const streamVal = streamFilter?.value || 'all';
+    const q = (searchBox?.value || '').trim().toLowerCase();
+
+    return matrixRows.filter(r => {
+      if (lgaVal !== 'all' && r.lgaId !== lgaVal) return false;
+      if (streamVal !== 'all' && r.streamId !== streamVal) return false;
+      if (q) {
+        const hay = `${r.lgaName} ${r.streamName}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
+  function renderHead() {
+    annualTableHead.innerHTML = `
+      <tr>
+        <th class="px-3 py-2 font-medium border-b border-slate-200">LGA</th>
+        <th class="px-3 py-2 font-medium border-b border-slate-200">Stream</th>
+        ${MONTHS.map(m => `<th class="px-3 py-2 font-medium border-b border-slate-200">${m.key}</th>`).join('')}
+        <th class="px-3 py-2 font-medium border-b border-slate-200">Total</th>
+      </tr>
+    `;
+  }
+
+  function renderBody(rows) {
+    if (!rows.length) {
+      annualTableBody.innerHTML = `
+        <tr class="text-slate-500">
+          <td class="px-3 py-4 text-center" colspan="16">No rows match your filters.</td>
+        </tr>`;
       return;
     }
 
-    const year = reportYearSelect && reportYearSelect.value
-      ? Number(reportYearSelect.value)
-      : new Date().getFullYear();
-    const month = reportMonthSelect && reportMonthSelect.value
-      ? Number(reportMonthSelect.value)
-      : null;
-    const zoneId = reportZoneSelect && reportZoneSelect.value
-      ? Number(reportZoneSelect.value)
-      : null;
-    const lgaId = reportLgaSelect && reportLgaSelect.value
-      ? Number(reportLgaSelect.value)
-      : null;
+    const mode = selectedView;
 
-    const monthLabel = month ? mapMonthName(month) : 'All months';
-    const zoneLabel = zoneId
-      ? (allZones.find((z) => z.id === zoneId)?.name || `Zone ${zoneId}`)
-      : 'All zones';
-    const lgaLabel = lgaId
-      ? (allLgas.find((l) => l.id === lgaId)?.name || `LGA ${lgaId}`)
-      : 'All LGAs';
+    const buildRow = (r, label, values, total, badgeClass) => {
+      const badge = label
+        ? `<span class="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] ${badgeClass}">${safeText(label)}</span>`
+        : '';
 
-    reportStatus.textContent = 'Preparing Excel export...';
+      return `
+        <tr>
+          <td class="px-3 py-2 whitespace-nowrap">
+            ${safeText(r.lgaName)}${badge}
+          </td>
+          <td class="px-3 py-2 whitespace-nowrap">${safeText(r.streamName)}</td>
+          ${values.map(v => `<td class="px-3 py-2 whitespace-nowrap">${formatNumber(v)}</td>`).join('')}
+          <td class="px-3 py-2 whitespace-nowrap font-medium">${formatNumber(total)}</td>
+        </tr>
+      `;
+    };
 
-    // Build budget map for this year
-    const budgetByMda = {};
-    allMdaBudgets.forEach((b) => {
-      if (b.year === year) {
-        budgetByMda[b.mda_id] = Number(b.approved_ntr || 0);
-      }
+    let html = '';
+
+    if (mode === 'collected') {
+      html = rows.map(r => buildRow(r, null, r.collected, r.collectedTotal, '')).join('');
+    } else if (mode === 'budget') {
+      html = rows.map(r => buildRow(r, null, r.budget, r.budgetTotal, '')).join('');
+    } else {
+      // both
+      html = rows.map(r => (
+        buildRow(r, 'COLLECTED', r.collected, r.collectedTotal, 'bg-slate-100 text-slate-800 border border-slate-200') +
+        buildRow(r, 'BUDGET', r.budget, r.budgetTotal, 'bg-emerald-50 text-emerald-800 border border-emerald-200')
+      )).join('');
+    }
+
+    annualTableBody.innerHTML = html;
+  }
+
+  function updateCards(filteredRows) {
+    if (cardYear) cardYear.textContent = yearTitle(selectedYear);
+    if (cardScope) cardScope.textContent = getScopeLabel();
+
+    // Count distinct LGAs/streams in filtered scope
+    const lgas = new Set(filteredRows.map(r => r.lgaId));
+    const streams = new Set(filteredRows.map(r => r.streamId));
+
+    if (cardLgas) cardLgas.textContent = String(lgas.size);
+    if (cardStreams) cardStreams.textContent = String(streams.size);
+
+    // Total collected across filtered rows (always computed from collected, regardless of view)
+    const totalCollected = filteredRows.reduce((sum, r) => sum + Number(r.collectedTotal || 0), 0);
+    if (cardTotalCollected) cardTotalCollected.textContent = formatNumber(totalCollected);
+  }
+
+  function updateSubtitle(filteredRows) {
+    const scope = getScopeLabel();
+    const viewLabel = selectedView === 'collected' ? 'Collected'
+      : selectedView === 'budget' ? 'Budget'
+      : 'Collected + Budget';
+
+    if (tableSubtitle) tableSubtitle.textContent = `${scope} • ${viewLabel} • ${selectedYear}`;
+    if (rowCount) rowCount.textContent = `${filteredRows.length} rows`;
+  }
+
+  function renderAll() {
+    renderHead();
+    const filtered = getFilteredRows();
+    renderBody(filtered);
+    updateCards(filtered);
+    updateSubtitle(filtered);
+
+    if (window.lucide) lucide.createIcons();
+  }
+
+  // ===== Excel export (.xlsx) =====
+  function buildAoaFor(mode, filtered) {
+    const header = ['LGA', 'Stream', ...MONTHS.map(m => m.key), 'Total'];
+    const meta = [
+      ['KATSINA STATE INTERNAL REVENUE SERVICE'],
+      ['SERVICE WIDE COLLECTION REPORT'],
+      [yearTitle(selectedYear)],
+      ['Scope', getScopeLabel()],
+      ['View', mode.toUpperCase()],
+      ['Generated', nowStamp()],
+      [],
+      header
+    ];
+
+    const rows = filtered.map(r => {
+      const values = mode === 'budget' ? r.budget : r.collected;
+      const total = mode === 'budget' ? r.budgetTotal : r.collectedTotal;
+      return [r.lgaName, r.streamName, ...values.map(v => Number(v || 0)), Number(total || 0)];
     });
 
-    // Calculate totals
-    const totalCollected = currentReportRows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
-    const uniqueMdas = [...new Set(currentReportRows.map((r) => r.mda_id))];
-    const totalApprovedBudget = uniqueMdas.reduce((sum, mdaId) => sum + (budgetByMda[mdaId] || 0), 0);
-    const variance = totalApprovedBudget - totalCollected;
-    const performance = totalApprovedBudget > 0 ? (totalCollected / totalApprovedBudget) * 100 : 0;
+    return [...meta, ...rows];
+  }
+
+  function exportExcel() {
+    if (!window.XLSX) {
+      alert('Excel library (XLSX) not loaded.');
+      return;
+    }
+
+    const filtered = getFilteredRows();
 
     const wb = XLSX.utils.book_new();
 
-    // ===== SHEET 1: SUMMARY =====
-    const summaryData = [
-      ['KATSINA STATE INTERNAL REVENUE SERVICE'],
-      ['REVENUE OPERATIONAL DIRECTORATE'],
-      ['NON TAX REVENUE DEPARTMENT'],
-      ['NTR REVENUE REPORT'],
-      [],
-      ['REPORT PARAMETERS', ''],
-      ['Reporting Year', year],
-      ['Month(s)', monthLabel],
-      ['Zone(s)', zoneLabel],
-      ['LGA(s)', lgaLabel],
-      [],
-      ['SUMMARY METRICS', ''],
-      ['Total Approved Budget (MDA Level)', totalApprovedBudget],
-      ['Total Collected', totalCollected],
-      ['Variance (Budget - Collected)', variance],
-      ['Performance (%)', performance.toFixed(2)],
-      ['Total Records', currentReportRows.length],
-      [],
-      ['Report Generated', new Date().toLocaleString('en-NG')]
-    ];
+    if (selectedView === 'both') {
+      const aoaCollected = buildAoaFor('collected', filtered);
+      const wsCollected = XLSX.utils.aoa_to_sheet(aoaCollected);
+      XLSX.utils.book_append_sheet(wb, wsCollected, 'Collected');
 
-    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
-    summarySheet['!cols'] = [{ wch: 35 }, { wch: 20 }];
-
-    // Style headers
-    const styles = {
-      header: {
-        font: { bold: true, size: 13, color: { rgb: 'FFFFFF' } },
-        fill: { fgColor: { rgb: '16324F' }, patternType: 'solid' },
-        alignment: { horizontal: 'left', vertical: 'center' }
-      },
-      sectionTitle: {
-        font: { bold: true, size: 11, color: { rgb: 'FFFFFF' } },
-        fill: { fgColor: { rgb: '0B4F3C' }, patternType: 'solid' },
-        alignment: { horizontal: 'left', vertical: 'center' }
-      },
-      labelBold: {
-        font: { bold: true, size: 11, color: { rgb: '16324F' } },
-        alignment: { horizontal: 'left' }
-      },
-      value: {
-        font: { size: 11, color: { rgb: '000000' } },
-        alignment: { horizontal: 'right' },
-        numFmt: '#,##0.00'
-      }
-    };
-
-    [0, 1, 2, 3].forEach((i) => {
-      if (summarySheet['A' + (i + 1)]) {
-        summarySheet['A' + (i + 1)].s = styles.header;
-      }
-    });
-
-    [6, 12].forEach((i) => {
-      if (summarySheet['A' + (i + 1)]) {
-        summarySheet['A' + (i + 1)].s = styles.sectionTitle;
-      }
-    });
-
-    for (let i = 7; i <= 18; i++) {
-      if (summarySheet['A' + i]) summarySheet['A' + i].s = styles.labelBold;
-      if (summarySheet['B' + i] && i >= 12 && i <= 17) {
-        if (!summarySheet['B' + i]) summarySheet['B' + i] = {};
-        summarySheet['B' + i].s = styles.value;
-      }
+      const aoaBudget = buildAoaFor('budget', filtered);
+      const wsBudget = XLSX.utils.aoa_to_sheet(aoaBudget);
+      XLSX.utils.book_append_sheet(wb, wsBudget, 'Budget');
+    } else {
+      const aoa = buildAoaFor(selectedView, filtered);
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      XLSX.utils.book_append_sheet(wb, ws, selectedView === 'budget' ? 'Budget' : 'Collected');
     }
 
-    XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary');
+    const filename = `KTIRS_ServiceWide_Report_${selectedYear}.xlsx`;
+    XLSX.writeFile(wb, filename);
+  }
 
-    // ===== SHEET 2: REVENUE BY SOURCE =====
-    const sourceMap = {};
-    currentReportRows.forEach((r) => {
-      const sourceKey = r.revenue_sources?.name || 'Unknown';
-      if (!sourceMap[sourceKey]) {
-        sourceMap[sourceKey] = {
-          code: r.revenue_sources?.code || '',
-          total: 0,
-          count: 0
-        };
-      }
-      sourceMap[sourceKey].total += Number(r.amount || 0);
-      sourceMap[sourceKey].count += 1;
+  // ===== PDF export =====
+  async function exportPdf() {
+    const jspdfNS = window.jspdf;
+    if (!jspdfNS?.jsPDF) {
+      alert('PDF library not loaded.');
+      return;
+    }
+
+    const filtered = getFilteredRows();
+
+    const doc = new jspdfNS.jsPDF('p', 'pt', 'a4');
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const marginX = 40;
+
+    let logoDataUrl = null;
+    try { logoDataUrl = await fetchAsDataURL(LOGO_URL); } catch (e) { console.warn(e); }
+
+    // Header
+    const top = 32;
+    if (logoDataUrl) doc.addImage(logoDataUrl, 'JPEG', marginX, top, 62, 62);
+
+    doc.setTextColor(...BRAND_BLACK);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('KATSINA STATE INTERNAL REVENUE SERVICE', pageW / 2, top + 18, { align: 'center' });
+
+    doc.setFontSize(11);
+    doc.text('SERVICE WIDE COLLECTION REPORT', pageW / 2, top + 36, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(yearTitle(selectedYear), pageW / 2, top + 54, { align: 'center' });
+
+    doc.setDrawColor(...BRAND_RED);
+    doc.setLineWidth(1);
+    doc.line(marginX, top + 76, pageW - marginX, top + 76);
+
+    doc.setFontSize(9);
+    doc.setTextColor(60);
+    doc.text(`Scope: ${getScopeLabel()}`, marginX, top + 94);
+    doc.text(`View: ${selectedView.toUpperCase()}`, marginX, top + 108);
+    doc.text(`Generated: ${nowStamp()}`, marginX, top + 122);
+
+    // Build table data
+    const head = [['LGA', 'Stream', ...MONTHS.map(m => m.key), 'Total']];
+    const mkBody = (mode) => filtered.map(r => {
+      const vals = mode === 'budget' ? r.budget : r.collected;
+      const tot = mode === 'budget' ? r.budgetTotal : r.collectedTotal;
+      return [
+        r.lgaName,
+        r.streamName,
+        ...vals.map(v => formatNumber(v)),
+        formatNumber(tot)
+      ];
     });
 
-    const sourceData = [
-      ['Revenue Source', 'Code', 'Total Collected (₦)', 'Number of Records', 'Average Per Record (₦)']
-    ];
-    Object.keys(sourceMap)
-      .sort()
-      .forEach((source) => {
-        const item = sourceMap[source];
-        sourceData.push([
-          source,
-          item.code,
-          item.total,
-          item.count,
-          item.count > 0 ? item.total / item.count : 0
-        ]);
+    let startY = top + 140;
+
+    const renderTable = (mode, headerColor) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...BRAND_BLACK);
+      doc.setFontSize(10);
+      doc.text(mode === 'budget' ? 'BUDGET' : 'COLLECTED', marginX, startY - 10);
+
+      doc.autoTable({
+        startY,
+        head,
+        body: mkBody(mode),
+        theme: 'grid',
+        styles: { fontSize: 7.5, cellPadding: 3 },
+        headStyles: { fillColor: headerColor, textColor: 255 },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        margin: { left: marginX, right: marginX }
       });
-    sourceData.push([]);
-    sourceData.push(['TOTAL', '', totalCollected, currentReportRows.length, totalCollected / (currentReportRows.length || 1)]);
 
-    const sourceSheet = XLSX.utils.aoa_to_sheet(sourceData);
-    sourceSheet['!cols'] = [{ wch: 35 }, { wch: 12 }, { wch: 18 }, { wch: 15 }, { wch: 18 }];
-
-    // Header style for source sheet
-    const sourceHeaderStyle = {
-      font: { bold: true, size: 11, color: { rgb: 'FFFFFF' } },
-      fill: { fgColor: { rgb: '0B4F3C' }, patternType: 'solid' },
-      alignment: { horizontal: 'center', vertical: 'center', wrapText: true }
+      startY = (doc.lastAutoTable?.finalY || startY) + 26;
     };
 
-    const sourceTotalStyle = {
-      font: { bold: true, size: 11, color: { rgb: 'FFFFFF' } },
-      fill: { fgColor: { rgb: '16324F' }, patternType: 'solid' },
-      numFmt: '#,##0.00'
-    };
-
-    ['A1', 'B1', 'C1', 'D1', 'E1'].forEach((cell) => {
-      if (sourceSheet[cell]) sourceSheet[cell].s = sourceHeaderStyle;
-    });
-
-    const totalRowIdx = Object.keys(sourceMap).length + 3;
-    ['A', 'B', 'C', 'D', 'E'].forEach((col) => {
-      const cell = col + totalRowIdx;
-      if (sourceSheet[cell]) sourceSheet[cell].s = sourceTotalStyle;
-    });
-
-    for (let i = 2; i < totalRowIdx; i++) {
-      if (sourceSheet['C' + i]) sourceSheet['C' + i].numFmt = '#,##0.00';
-      if (sourceSheet['E' + i]) sourceSheet['E' + i].numFmt = '#,##0.00';
+    if (selectedView === 'both') {
+      renderTable('collected', BRAND_RED);
+      renderTable('budget', BRAND_GREEN);
+    } else if (selectedView === 'budget') {
+      renderTable('budget', BRAND_GREEN);
+    } else {
+      renderTable('collected', BRAND_RED);
     }
 
-    XLSX.utils.book_append_sheet(wb, sourceSheet, 'By Revenue Source');
+    // Footer page numbers
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+      doc.text(`Page ${i} of ${pageCount}`, pageW / 2, pageH - 22, { align: 'center' });
+    }
 
-    // ===== SHEET 3: REVENUE BY MDA =====
-    const mdaMap = {};
-    currentReportRows.forEach((r) => {
-      const mdaId = r.mda_id;
-      const mdaName = r.mdas?.name || 'Unknown MDA';
-      if (!mdaMap[mdaName]) {
-        mdaMap[mdaName] = {
-          id: mdaId,
-          collected: 0,
-          count: 0
-        };
-      }
-      mdaMap[mdaName].collected += Number(r.amount || 0);
-      mdaMap[mdaName].count += 1;
-    });
+    doc.save(`KTIRS_ServiceWide_Report_${selectedYear}.pdf`);
+  }
 
-    const mdaData = [
-      ['MDA Name', 'Approved Budget (₦)', 'Total Collected (₦)', 'Variance (₦)', 'Performance (%)']
-    ];
-    Object.keys(mdaMap)
-      .sort()
-      .forEach((mdaName) => {
-        const item = mdaMap[mdaName];
-        const approved = budgetByMda[item.id] || 0;
-        const mdaVariance = approved - item.collected;
-        const mdaPerf = approved > 0 ? (item.collected / approved) * 100 : 0;
-        mdaData.push([
-          mdaName,
-          approved,
-          item.collected,
-          mdaVariance,
-          mdaPerf.toFixed(2)
-        ]);
+  // ===== Refresh =====
+  async function refreshReport() {
+    setLoading(`Loading annual report for ${selectedYear}…`);
+
+    await loadBudgets(selectedYear);
+    const collections = await loadCollections(selectedYear);
+
+    matrixRows = buildEmptyMatrix();
+    applyCollectionsToMatrix(matrixRows, collections);
+
+    renderAll();
+  }
+
+  // ===== Events =====
+  function wireEvents() {
+    if (logoutBtn) logoutBtn.addEventListener('click', logout);
+
+    if (yearPicker) {
+      yearPicker.addEventListener('change', async () => {
+        selectedYear = Number(yearPicker.value) || selectedYear;
+        await refreshReport();
       });
-    mdaData.push([]);
-    mdaData.push(['TOTAL', totalApprovedBudget, totalCollected, variance, performance.toFixed(2)]);
-
-    const mdaSheet = XLSX.utils.aoa_to_sheet(mdaData);
-    mdaSheet['!cols'] = [{ wch: 35 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 12 }];
-
-    const mdaHeaderStyle = {
-      font: { bold: true, size: 11, color: { rgb: 'FFFFFF' } },
-      fill: { fgColor: { rgb: '0B4F3C' }, patternType: 'solid' },
-      alignment: { horizontal: 'center', vertical: 'center', wrapText: true }
-    };
-
-    const mdaTotalStyle = {
-      font: { bold: true, size: 11, color: { rgb: 'FFFFFF' } },
-      fill: { fgColor: { rgb: '16324F' }, patternType: 'solid' },
-      numFmt: '#,##0.00'
-    };
-
-    ['A1', 'B1', 'C1', 'D1', 'E1'].forEach((cell) => {
-      if (mdaSheet[cell]) mdaSheet[cell].s = mdaHeaderStyle;
-    });
-
-    const mdaTotalRowIdx = Object.keys(mdaMap).length + 3;
-    ['A', 'B', 'C', 'D', 'E'].forEach((col) => {
-      const cell = col + mdaTotalRowIdx;
-      if (mdaSheet[cell]) mdaSheet[cell].s = mdaTotalStyle;
-    });
-
-    for (let i = 2; i < mdaTotalRowIdx; i++) {
-      if (mdaSheet['B' + i]) mdaSheet['B' + i].numFmt = '#,##0.00';
-      if (mdaSheet['C' + i]) mdaSheet['C' + i].numFmt = '#,##0.00';
-      if (mdaSheet['D' + i]) mdaSheet['D' + i].numFmt = '#,##0.00';
     }
 
-    XLSX.utils.book_append_sheet(wb, mdaSheet, 'By MDA');
-
-    // ===== SHEET 4: DETAILED TRANSACTIONS =====
-    const detailedData = currentReportRows.map((r) => {
-      const date = r.revenue_date ? new Date(r.revenue_date) : null;
-      return {
-        'Date': date && !isNaN(date.getTime()) ? date.toISOString().substring(0, 10) : '',
-        'Zone': r.zones?.name || '',
-        'LGA': r.lgas?.name || '',
-        'MDA': r.mdas?.name || '',
-        'Revenue Source': r.revenue_sources?.name || '',
-        'Code': r.revenue_sources?.code || '',
-        'Amount (₦)': Number(r.amount || 0)
-      };
-    });
-
-    const detailedSheet = XLSX.utils.json_to_sheet(detailedData);
-    detailedSheet['!cols'] = [
-      { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 30 }, { wch: 35 }, { wch: 12 }, { wch: 15 }
-    ];
-
-    const detailedHeaderStyle = {
-      font: { bold: true, size: 11, color: { rgb: 'FFFFFF' } },
-      fill: { fgColor: { rgb: '0B4F3C' }, patternType: 'solid' },
-      alignment: { horizontal: 'center', vertical: 'center', wrapText: true }
-    };
-
-    ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1'].forEach((cell) => {
-      if (detailedSheet[cell]) detailedSheet[cell].s = detailedHeaderStyle;
-    });
-
-    for (let i = 2; i <= currentReportRows.length + 1; i++) {
-      if (detailedSheet['G' + i]) {
-        detailedSheet['G' + i].numFmt = '#,##0.00';
-      }
+    if (viewMode) {
+      viewMode.addEventListener('change', () => {
+        selectedView = viewMode.value || 'collected';
+        renderAll();
+      });
     }
 
-    XLSX.utils.book_append_sheet(wb, detailedSheet, 'Detailed Transactions');
+    const rerender = () => renderAll();
 
-    // Write file
-    XLSX.writeFile(wb, `ktirs-ntr-report-${year}-${String(month || 'all').padStart(2, '0')}.xlsx`);
-    reportStatus.textContent = 'Excel export completed successfully.';
-  });
-}
+    if (lgaFilter) lgaFilter.addEventListener('change', rerender);
+    if (streamFilter) streamFilter.addEventListener('change', rerender);
 
-// PDF export stub
-if (btnExportPdf) {
-  btnExportPdf.addEventListener('click', () => {
-    if (!currentReportRows || currentReportRows.length === 0) return;
-    alert('PDF export will use the templates/report.html layout (to be implemented).');
-  });
-}
+    if (searchBox) searchBox.addEventListener('input', debounce(rerender, 200));
+
+    if (refreshBtn) refreshBtn.addEventListener('click', refreshReport);
+
+    if (exportExcelBtn) exportExcelBtn.addEventListener('click', exportExcel);
+
+    if (exportPdfBtn) {
+      exportPdfBtn.addEventListener('click', async () => {
+        exportPdfBtn.disabled = true;
+        try { await exportPdf(); }
+        finally { exportPdfBtn.disabled = false; }
+      });
+    }
+  }
+
+  // ===== Init =====
+  (async () => {
+    setupSidebar();
+    populateYearSelect(yearPicker);
+
+    // initial state from controls
+    selectedYear = Number(yearPicker?.value) || selectedYear;
+    selectedView = viewMode?.value || selectedView;
+
+    const ok = await requireAdmin();
+    if (!ok) return;
+
+    try {
+      await loadGlobals();
+      await refreshReport();
+    } catch (e) {
+      console.error(e);
+      setLoading('Failed to load report. Check console for details.');
+    }
+
+    wireEvents();
+    if (window.lucide) lucide.createIcons();
+  })();
+})();

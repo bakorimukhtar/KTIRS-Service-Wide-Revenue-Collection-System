@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KTIRS – Monthly Entry</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="icon" href="../assets/favicon.ico" type="image/x-icon" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root { --kirs-green:#0b4f3c; --kirs-navy:#16324f; }
+    body { font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif; }
+    .brand-gradient { background: linear-gradient(90deg, var(--kirs-navy), var(--kirs-green)); }
+  </style>
+</head>
+
+<body class="bg-slate-100 text-slate-900">
+<div class="min-h-screen flex flex-col">
+
+  <!-- TOP BAR (no nav, only back) -->
+  <header class="brand-gradient text-white">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between py-3">
+        <div class="flex items-center gap-3">
+          <button id="btnBack"
+            class="inline-flex items-center gap-2 rounded-md bg-white/10 hover:bg-white/20 px-3 py-2 text-xs border border-white/20">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            <span>Back to Streams</span>
+          </button>
+
+          <div class="hidden sm:flex items-center gap-2">
+            <img src="../assets/images/katsina-state-logo.png" alt="Katsina State Government Logo" class="h-10 w-auto object-contain" />
+            <img src="../assets/images/katsina-irs-logo.png" alt="KTIRS Logo" class="h-10 w-auto object-contain" />
+          </div>
+
+          <div class="hidden md:flex flex-col leading-tight">
+            <span class="text-xs uppercase tracking-widest text-slate-200">KTIRS</span>
+            <span class="text-sm font-semibold">Monthly collections entry</span>
+            <span class="text-[11px] text-slate-200">Service-Wide Revenue Collection System</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <div class="hidden sm:flex flex-col text-right text-xs">
+            <span class="font-medium" id="topbarUserName">Officer</span>
+            <span class="text-slate-200" id="topbarBranchName">Loading...</span>
+          </div>
+          <button class="inline-flex items-center justify-center h-9 w-9 rounded-full border border-slate-200/60 bg-white/10">
+            <span class="text-sm font-semibold" id="topbarUserInitial">O</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="flex-1">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-6">
+
+      <!-- Context -->
+      <section class="bg-white border border-slate-200 rounded-md p-4">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div>
+            <h1 class="text-lg font-semibold text-slate-900" id="pageTitle">Monthly entry</h1>
+            <p class="text-sm text-slate-600" id="pageSubtitle">Loading stream details...</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <div class="px-3 py-1 rounded-full bg-slate-900 text-slate-50">
+              Year: <span class="font-semibold" id="badgeYear">—</span>
+            </div>
+            <div class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-100">
+              Current month: <span class="font-semibold" id="badgeMonth">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div class="bg-slate-50 border border-slate-200 rounded-md p-3">
+            <p class="text-[11px] text-slate-500 uppercase tracking-wide">LGA / Branch</p>
+            <p class="text-sm font-semibold text-slate-900" id="cardLga">—</p>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-md p-3">
+            <p class="text-[11px] text-slate-500 uppercase tracking-wide">Revenue stream</p>
+            <p class="text-sm font-semibold text-slate-900" id="cardStream">—</p>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-md p-3">
+            <p class="text-[11px] text-slate-500 uppercase tracking-wide">Current year total</p>
+            <p class="text-sm font-semibold text-slate-900" id="cardYearTotal">₦0.00</p>
+            <p class="text-[11px] text-slate-500" id="cardYearBudgetHint">—</p>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-md p-3">
+            <p class="text-[11px] text-slate-500 uppercase tracking-wide">Current month recorded</p>
+            <p class="text-sm font-semibold text-slate-900" id="cardMonthTotal">₦0.00</p>
+            <p class="text-[11px] text-slate-500" id="cardMonthTargetHint">—</p>
+          </div>
+        </div>
+
+        <p class="mt-3 text-[11px] text-slate-500" id="streamInfoNote"></p>
+      </section>
+
+      <!-- Months table -->
+      <section class="bg-white border border-slate-200 rounded-md p-4">
+        <div class="flex items-start justify-between gap-3 mb-3">
+          <div>
+            <h2 class="text-sm font-semibold text-slate-900">Monthly records</h2>
+            <p class="text-xs text-slate-500">Record or edit amounts for each month of the selected year.</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <select id="yearSelect"
+              class="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-slate-200">
+            </select>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-md border border-slate-200/60">
+          <table class="min-w-full text-xs text-left">
+            <thead class="bg-slate-50 text-slate-600">
+              <tr>
+                <th class="px-3 py-2 font-medium border-b border-slate-200">Month</th>
+                <th class="px-3 py-2 font-medium border-b border-slate-200 text-right">Recorded total</th>
+                <th class="px-3 py-2 font-medium border-b border-slate-200 text-right">Rows</th>
+                <th class="px-3 py-2 font-medium border-b border-slate-200 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="monthsTableBody" class="divide-y divide-slate-100">
+              <tr class="text-slate-500">
+                <td colspan="4" class="px-3 py-4 text-center">Loading months...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- RECORD/EDIT MODAL -->
+<div id="entryModal" class="fixed inset-0 hidden z-50">
+  <div id="entryBackdrop" class="absolute inset-0 bg-black/40"></div>
+
+  <div class="relative mx-auto mt-10 w-[95%] max-w-lg bg-white rounded-md border border-slate-200 shadow-lg">
+    <div class="flex items-start justify-between gap-4 p-4 border-b border-slate-200">
+      <div>
+        <h3 class="text-sm font-semibold text-slate-900" id="modalTitle">Record amount</h3>
+        <p class="text-xs text-slate-500" id="modalSubtitle">—</p>
+      </div>
+      <button id="btnCloseModal"
+        class="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs hover:bg-slate-50">
+        <i data-lucide="x" class="w-4 h-4"></i>
+        <span>Close</span>
+      </button>
+    </div>
+
+    <form id="entryForm" class="p-4 space-y-4">
+      <div class="grid grid-cols-1 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Month</label>
+          <input id="inputMonth" type="text" readonly
+            class="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Amount collected (₦)</label>
+          <input id="inputAmount" inputmode="decimal" autocomplete="off" placeholder="e.g. 150,000"
+            class="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-200" />
+          <p class="mt-1 text-[11px] text-slate-500" id="amountHint">
+            Amount will auto-format with commas as you type.
+          </p>
+          <div class="mt-2 rounded-md border border-slate-200 bg-slate-50 p-2">
+            <p class="text-[11px] text-slate-500 uppercase tracking-wide">In words</p>
+            <p class="text-xs font-medium text-slate-900" id="amountInWords">—</p>
+          </div>
+        </div>
+
+        <div class="hidden" id="codeBlock">
+          <label class="block text-xs font-medium text-slate-700 mb-1">Economic code (for saving)</label>
+          <select id="selectEconomicCode"
+            class="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-slate-200">
+          </select>
+          <p class="mt-1 text-[11px] text-slate-500" id="codeHint"></p>
+        </div>
+
+        <p class="text-xs text-rose-600 hidden" id="modalError"></p>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+        <button type="button" id="btnCancel"
+          class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs hover:bg-slate-50">
+          Cancel
+        </button>
+        <button type="submit" id="btnSave"
+          class="inline-flex items-center gap-2 rounded-md bg-slate-900 text-white px-3 py-2 text-xs hover:bg-slate-800">
+          <i data-lucide="save" class="w-4 h-4"></i>
+          <span>Save amount</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Supabase -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+  window.supabaseClient = supabase.createClient(
+    'https://nljuqchmmyjoxfrugght.supabase.co',
+    'sb_publishable_EBdEwDiYavXVf6iEpV4bNA_8ZOnKQhh'
+  );
+</script>
+
+<script src="js/monthly-entry.js"></script>
+<script>
+  if (window.lucide) lucide.createIcons();
+</script>
+</body>
+</html>
