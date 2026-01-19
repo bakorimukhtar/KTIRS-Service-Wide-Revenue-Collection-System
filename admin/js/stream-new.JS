@@ -11,7 +11,6 @@ const streamNameInput = document.getElementById('streamName');
 const streamStatusSelect = document.getElementById('streamStatus');
 
 const economicCodeInput = document.getElementById('economicCode');
-const economicCodeNameInput = document.getElementById('economicCodeName');
 
 const streamSubmitBtn = document.getElementById('streamSubmitBtn');
 const streamSubmitLabel = document.getElementById('streamSubmitLabel');
@@ -58,7 +57,10 @@ async function requireAdminSession() {
 (async () => {
   const supabase = window.supabaseClient;
   if (!supabase) {
-    if (streamFormMessage) streamFormMessage.textContent = 'System configuration error. Please contact ICT.';
+    if (streamFormMessage) {
+      streamFormMessage.textContent =
+        'System configuration error. Please contact ICT.';
+    }
     return;
   }
 
@@ -85,7 +87,8 @@ async function requireAdminSession() {
       .single();
 
     if (streamError || !stream) {
-      streamFormMessage.textContent = 'Unable to load selected stream. Return to streams and try again.';
+      streamFormMessage.textContent =
+        'Unable to load selected stream. Return to streams and try again.';
       return;
     }
 
@@ -93,7 +96,7 @@ async function requireAdminSession() {
     streamNameInput.value = stream.name || '';
     streamStatusSelect.value = stream.is_active ? 'active' : 'inactive';
 
-    // Load latest code under the stream (best effort) [web:103]
+    // Load latest code under the stream (best effort)
     const { data: codeRow } = await supabase
       .from('economic_codes')
       .select('id, code, name')
@@ -104,7 +107,7 @@ async function requireAdminSession() {
 
     if (codeRow) {
       economicCodeInput.value = codeRow.code || '';
-      economicCodeNameInput.value = codeRow.name || '';
+      // name comes from DB but we don't show it in the UI
     }
   } else {
     streamStatusSelect.value = 'active';
@@ -129,7 +132,8 @@ if (streamForm) {
     const isActive = (streamStatusSelect.value || 'active') === 'active';
 
     const ecoCode = (economicCodeInput.value || '').trim();
-    const ecoName = (economicCodeNameInput.value || '').trim();
+    // use stream name as economic code name
+    const ecoName = streamName;
 
     if (!streamName) {
       streamFormMessage.textContent = 'Please enter a stream name.';
@@ -139,12 +143,6 @@ if (streamForm) {
     }
     if (!ecoCode) {
       streamFormMessage.textContent = 'Please enter an economic code.';
-      streamSubmitBtn.disabled = false;
-      streamSubmitLabel.textContent = isEditMode ? 'Update Stream' : 'Save Stream';
-      return;
-    }
-    if (!ecoName) {
-      streamFormMessage.textContent = 'Please enter an economic code name.';
       streamSubmitBtn.disabled = false;
       streamSubmitLabel.textContent = isEditMode ? 'Update Stream' : 'Save Stream';
       return;
@@ -162,13 +160,13 @@ if (streamForm) {
 
         if (updErr) {
           console.error(updErr);
-          streamFormMessage.textContent = 'Unable to update stream. Ensure stream name is unique.';
+          streamFormMessage.textContent =
+            'Unable to update stream. Ensure stream name is unique.';
           streamSubmitBtn.disabled = false;
           streamSubmitLabel.textContent = 'Update Stream';
           return;
         }
       } else {
-        // Insert then return id [web:83]
         const { data: insertedStream, error: insErr } = await supabase
           .from('revenue_streams')
           .insert({ name: streamName, is_active: isActive })
@@ -177,7 +175,8 @@ if (streamForm) {
 
         if (insErr || !insertedStream) {
           console.error(insErr);
-          streamFormMessage.textContent = 'Unable to create stream. Ensure the name is unique and try again.';
+          streamFormMessage.textContent =
+            'Unable to create stream. Ensure the name is unique and try again.';
           streamSubmitBtn.disabled = false;
           streamSubmitLabel.textContent = 'Save Stream';
           return;
@@ -186,7 +185,7 @@ if (streamForm) {
         streamId = insertedStream.id;
       }
 
-      // 2) Save economic code (update if exists else insert) [web:103]
+      // 2) Save economic code (update if exists else insert)
       const { data: existing } = await supabase
         .from('economic_codes')
         .select('id')
@@ -203,7 +202,8 @@ if (streamForm) {
 
         if (codeUpdErr) {
           console.error(codeUpdErr);
-          streamFormMessage.textContent = 'Stream saved, but economic code update failed (check duplicates/permissions).';
+          streamFormMessage.textContent =
+            'Stream saved, but economic code update failed (check duplicates/permissions).';
           streamSubmitBtn.disabled = false;
           streamSubmitLabel.textContent = isEditMode ? 'Update Stream' : 'Save Stream';
           return;
@@ -215,12 +215,13 @@ if (streamForm) {
             revenue_stream_id: streamId,
             code: ecoCode,
             name: ecoName,
-            is_active: true
+            is_active: true,
           });
 
         if (codeInsErr) {
           console.error(codeInsErr);
-          streamFormMessage.textContent = 'Stream saved, but economic code insert failed (maybe duplicate code).';
+          streamFormMessage.textContent =
+            'Stream saved, but economic code insert failed (maybe duplicate code).';
           streamSubmitBtn.disabled = false;
           streamSubmitLabel.textContent = isEditMode ? 'Update Stream' : 'Save Stream';
           return;
@@ -230,7 +231,8 @@ if (streamForm) {
       window.location.href = 'streams.html';
     } catch (err) {
       console.error(err);
-      streamFormMessage.textContent = 'Unexpected error while saving. Please try again.';
+      streamFormMessage.textContent =
+        'Unexpected error while saving. Please try again.';
       streamSubmitBtn.disabled = false;
       streamSubmitLabel.textContent = isEditMode ? 'Update Stream' : 'Save Stream';
     }
@@ -247,7 +249,6 @@ if (streamResetBtn) {
       streamNameInput.value = '';
       streamStatusSelect.value = 'active';
       economicCodeInput.value = '';
-      economicCodeNameInput.value = '';
     }
   });
 }
