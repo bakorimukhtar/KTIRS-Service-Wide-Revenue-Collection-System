@@ -125,28 +125,22 @@
           </div>
 
           <!-- Economic code fields -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label for="economicCode" class="block mb-1 text-slate-700">Economic code</label>
-              <input
-                type="text"
-                id="economicCode"
-                class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                placeholder="e.g. 12010101" />
-              <p class="mt-1 text-[11px] text-slate-500">
-                Code must be unique within this stream.
-              </p>
-            </div>
+          <div class="grid grid-cols-1 gap-4">
+  <div>
+    <label for="economicCode" class="block mb-1 text-slate-700">Economic code</label>
+    <input
+      type="text"
+      id="economicCode"
+      class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+      placeholder="e.g. 12010101" />
+    <p class="mt-1 text-[11px] text-slate-500">
+      Code must be unique within this stream.
+    </p>
+  </div>
+</div>
 
-            <div>
-              <label for="economicCodeName" class="block mb-1 text-slate-700">Economic code name</label>
-              <input
-                type="text"
-                id="economicCodeName"
-                class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                placeholder="e.g. PAYE – Public Service" />
-            </div>
-          </div>
+
+            
 
           <!-- Actions -->
           <div class="flex items-center justify-between gap-2 pt-2">
@@ -182,7 +176,7 @@
   window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 </script>
 
-<script src="js/stream-new.JS"></script>
+<script src="js/stream-new.js"></script>
 <script>
   if (window.lucide) lucide.createIcons();
 </script>
