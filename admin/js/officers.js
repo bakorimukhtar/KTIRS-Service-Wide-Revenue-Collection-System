@@ -64,7 +64,6 @@ const createOfficerMessage = document.getElementById('createOfficerMessage');
 const createAssignNow = document.getElementById('createAssignNow');
 const createAssignFields = document.getElementById('createAssignFields');
 const createAssignLga = document.getElementById('createAssignLga');
-const createAssignStream = document.getElementById('createAssignStream');
 
 // Assign modal
 const assignModal = document.getElementById('assignModal');
@@ -77,11 +76,10 @@ const assignTitle = document.getElementById('assignTitle');
 const assignOfficerName = document.getElementById('assignOfficerName');
 const assignOfficerId = document.getElementById('assignOfficerId');
 const assignLgaSelect = document.getElementById('assignLgaSelect');
-const assignStreamSelect = document.getElementById('assignStreamSelect');
 const assignCurrentTableBody = document.getElementById('assignCurrentTableBody');
 const assignMessage = document.getElementById('assignMessage');
 
-// NEW: unassign button inside assign modal
+// Unassign button inside assign modal
 const unassignOfficerBtn = document.getElementById('unassignOfficerBtn');
 
 // Credentials modal (Admin reset only)
@@ -100,7 +98,7 @@ const saveResetPasswordBtn = document.getElementById('saveResetPasswordBtn');
 
 const credentialsMessage = document.getElementById('credentialsMessage');
 
-// NEW: delete officer modal
+// Delete officer modal
 const deleteOfficerModal = document.getElementById('deleteOfficerModal');
 const deleteOfficerBackdrop = document.getElementById('deleteOfficerBackdrop');
 const closeDeleteOfficerBtn = document.getElementById('closeDeleteOfficerBtn');
@@ -112,17 +110,15 @@ const deleteOfficerMessage = document.getElementById('deleteOfficerMessage');
 
 // Config
 const OFFICER_ROLE = 'officer';
-const ADMIN_SET_PASSWORD_FUNCTION = 'admin-set-password'; // Edge function (service role)
-const ADMIN_DELETE_USER_FUNCTION = 'admin-delete-user';   // OPTIONAL Edge function (service role)
+const ADMIN_SET_PASSWORD_FUNCTION = 'admin-set-password';
+const ADMIN_DELETE_USER_FUNCTION = 'admin-delete-user';
 
 // State
 let allLgas = [];
-let allStreams = [];
 let allOfficers = [];
 let activeAssignments = [];
 
 let lgaById = new Map();
-let streamById = new Map();
 let assignmentsByOfficer = new Map();
 
 let currentAssignOfficerId = null;
@@ -145,7 +141,6 @@ function showCreateOfficer() {
   if (createAssignNow) createAssignNow.checked = false;
   createAssignFields?.classList.add('hidden');
   if (createAssignLga) createAssignLga.value = '';
-  if (createAssignStream) createAssignStream.value = '';
 
   setTimeout(() => createOfficerName?.focus(), 50);
 }
@@ -157,7 +152,6 @@ function hideAssign() {
   currentAssignOfficerId = null;
   setMsg(assignMessage, '');
   if (assignLgaSelect) assignLgaSelect.value = '';
-  if (assignStreamSelect) assignStreamSelect.value = '';
 }
 
 function showCredentials() { credentialsModal?.classList.remove('hidden'); }
@@ -224,7 +218,6 @@ if (logoutBtn) {
 
 // ---------- Supabase client helpers ----------
 
-// Separate client used ONLY for signUp, so admin session isn't overwritten.
 function getCreateUserClient() {
   if (window.supabaseCreateUserClient) return window.supabaseCreateUserClient;
 
@@ -261,30 +254,14 @@ async function loadCoreLookups() {
   if (lErr) { console.warn('LGAs load error:', lErr); allLgas = []; }
   else allLgas = lgas || [];
 
-  const { data: streams, error: sErr } = await supabase
-    .from('revenue_streams')
-    .select('id, name, is_active')
-    .eq('is_active', true)
-    .order('name', { ascending: true });
-
-  if (sErr) { console.warn('Streams load error:', sErr); allStreams = []; }
-  else allStreams = streams || [];
-
   lgaById = new Map(allLgas.map(l => [l.id, l]));
-  streamById = new Map(allStreams.map(s => [s.id, s]));
 
   const lgaOptions = `<option value="">Select LGA…</option>` + allLgas.map(l => (
     `<option value="${safeText(l.id)}">${safeText(l.name)}</option>`
   )).join('');
 
-  const streamOptions = `<option value="">Select stream…</option>` + allStreams.map(s => (
-    `<option value="${safeText(s.id)}">${safeText(s.name)}</option>`
-  )).join('');
-
   if (createAssignLga) createAssignLga.innerHTML = lgaOptions;
   if (assignLgaSelect) assignLgaSelect.innerHTML = lgaOptions;
-  if (createAssignStream) createAssignStream.innerHTML = streamOptions;
-  if (assignStreamSelect) assignStreamSelect.innerHTML = streamOptions;
 }
 
 async function loadOfficers() {
@@ -311,7 +288,7 @@ async function loadActiveAssignments() {
 
   const { data, error } = await supabase
     .from('officer_assignments')
-    .select('id, officer_id, lga_id, revenue_stream_id, is_active, created_at')
+    .select('id, officer_id, lga_id, is_active, created_at')
     .eq('is_active', true);
 
   if (error) {
@@ -366,7 +343,7 @@ function renderOfficersTable() {
   if (rows.length === 0) {
     officersTableBody.innerHTML = `
       <tr class="text-slate-500">
-        <td colspan="5" class="px-3 py-4 text-center">No officers found.</td>
+        <td colspan="4" class="px-3 py-4 text-center">No officers found.</td>
       </tr>
     `;
     return;
@@ -388,10 +365,7 @@ function renderOfficersTable() {
          </span>`;
 
     const lgaNames = uniq(ass.map(a => lgaById.get(a.lga_id)?.name).filter(Boolean));
-    const streamNames = uniq(ass.map(a => streamById.get(a.revenue_stream_id)?.name).filter(Boolean));
-
     const lgaCell = isUnassigned ? '—' : safeText(lgaNames.join(', ') || '—');
-    const streamCell = isUnassigned ? '—' : safeText(streamNames.join(', ') || '—');
 
     const actionLabel = isUnassigned ? 'Assign' : 'Assign/Reassign';
 
@@ -414,7 +388,6 @@ function renderOfficersTable() {
         </td>
         <td class="px-3 py-2">${statusBadge}</td>
         <td class="px-3 py-2">${lgaCell}</td>
-        <td class="px-3 py-2">${streamCell}</td>
         <td class="px-3 py-2 text-right">
           <div class="flex flex-wrap gap-2 justify-end">
             <button
@@ -446,7 +419,7 @@ function renderOfficersTable() {
   }).join('');
 }
 
-// Event delegation for action buttons (prevents duplicate listeners after re-render)
+// Event delegation for action buttons
 officersTableBody?.addEventListener('click', (e) => {
   const target = e.target;
 
@@ -504,7 +477,7 @@ function renderAssignCurrentTable(officerId) {
   if (!ass || ass.length === 0) {
     assignCurrentTableBody.innerHTML = `
       <tr class="text-slate-500">
-        <td colspan="2" class="px-3 py-4 text-center">No active assignments.</td>
+        <td class="px-3 py-4 text-center">No active assignments.</td>
       </tr>
     `;
     return;
@@ -512,11 +485,9 @@ function renderAssignCurrentTable(officerId) {
 
   assignCurrentTableBody.innerHTML = ass.map(a => {
     const lgaName = lgaById.get(a.lga_id)?.name || '—';
-    const streamName = streamById.get(a.revenue_stream_id)?.name || '—';
     return `
       <tr>
         <td class="px-3 py-2">${safeText(lgaName)}</td>
-        <td class="px-3 py-2">${safeText(streamName)}</td>
       </tr>
     `;
   }).join('');
@@ -533,13 +504,12 @@ async function saveAssignment() {
 
   const officerId = currentAssignOfficerId;
   const lgaId = assignLgaSelect?.value || '';
-  const streamId = assignStreamSelect?.value || '';
   const mode = getAssignMode();
 
   if (!officerId) return;
 
-  if (!lgaId || !streamId) {
-    setMsg(assignMessage, 'Please select both LGA and revenue stream.');
+  if (!lgaId) {
+    setMsg(assignMessage, 'Please select an LGA / branch.');
     return;
   }
 
@@ -561,7 +531,6 @@ async function saveAssignment() {
       .insert({
         officer_id: officerId,
         lga_id: lgaId,
-        revenue_stream_id: streamId,
         is_active: true
       });
 
@@ -596,7 +565,6 @@ async function unassignOfficerAssignments(officerId) {
 
     await refreshAndRender();
 
-    // If assign modal is open for this same officer, refresh its inner table
     if (currentAssignOfficerId === officerId) {
       renderAssignCurrentTable(officerId);
       setMsg(assignMessage, 'Officer unassigned.');
@@ -688,7 +656,6 @@ async function deleteOfficerConfirmed() {
   const officerId = currentDeleteOfficerId;
   if (!officerId) return;
 
-  // safety: never delete yourself
   if (currentAdminUserId && officerId === currentAdminUserId) {
     setMsg(deleteOfficerMessage, 'You cannot delete the currently logged-in admin.');
     return;
@@ -699,7 +666,6 @@ async function deleteOfficerConfirmed() {
   setMsg(deleteOfficerMessage, 'Deleting officer...');
 
   try {
-    // 1) Deactivate assignments
     const { error: deactErr } = await supabase
       .from('officer_assignments')
       .update({ is_active: false })
@@ -708,7 +674,6 @@ async function deleteOfficerConfirmed() {
 
     if (deactErr) throw deactErr;
 
-    // 2) Delete officer profile row
     const { error: profDelErr } = await supabase
       .from('profiles')
       .delete()
@@ -717,8 +682,6 @@ async function deleteOfficerConfirmed() {
 
     if (profDelErr) throw profDelErr;
 
-    // 3) OPTIONAL: delete auth user (requires Edge Function with service_role)
-    // If you haven't deployed it, this will fail gracefully.
     let authDeleted = false;
     try {
       const { error: fnErr } = await supabase.functions.invoke(ADMIN_DELETE_USER_FUNCTION, {
@@ -789,25 +752,21 @@ async function createOfficer() {
 
     if (profErr) throw profErr;
 
-    // Optional assign now
     const assignNow = !!createAssignNow?.checked;
     const lgaId = createAssignLga?.value || '';
-    const streamId = createAssignStream?.value || '';
 
-    if (assignNow && lgaId && streamId) {
+    if (assignNow && lgaId) {
       const { error: insErr } = await supabase
         .from('officer_assignments')
         .insert({
           officer_id: officerId,
           lga_id: lgaId,
-          revenue_stream_id: streamId,
           is_active: true
         });
 
       if (insErr) throw insErr;
     }
 
-    // discard any temporary auth session created by signUp client
     await createUserClient.auth.signOut();
 
     await refreshAndRender();
@@ -828,13 +787,11 @@ filterUnassigned?.addEventListener('change', renderOfficersTable);
   const supabase = window.supabaseClient;
   if (!supabase) return;
 
-  // Session check
   const { data: sessionData } = await supabase.auth.getSession();
   if (!sessionData?.session?.user) { window.location.href = '../index.html'; return; }
   const user = sessionData.session.user;
   currentAdminUserId = user.id;
 
-  // Profile check (admin only)
   const { data: profile } = await supabase
     .from('profiles')
     .select('full_name, global_role')
@@ -846,7 +803,6 @@ filterUnassigned?.addEventListener('change', renderOfficersTable);
     return;
   }
 
-  // Topbar user
   const name = (profile.full_name || '').trim() || user.email || 'Admin User';
   const initial = name.charAt(0).toUpperCase();
   const topbarUserName = document.getElementById('topbarUserName');

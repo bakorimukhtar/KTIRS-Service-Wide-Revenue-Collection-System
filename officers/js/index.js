@@ -9,12 +9,11 @@ const topbarUserInitial = el('topbarUserInitial');
 
 const currentMonthBadge = el('currentMonthBadge');
 const assignedLgaBadge = el('assignedLgaBadge');
-const assignedStreamsBadge = el('assignedStreamsBadge');
 
 const statOfficerName = el('statOfficerName');
 const statOfficerId = el('statOfficerId');
 const statAssignedLgas = el('statAssignedLgas');
-const statAssignedStreams = el('statAssignedStreams');
+const statAvailableStreams = el('statAvailableStreams');
 
 const assignmentsTableBody = el('assignmentsTableBody');
 
@@ -78,11 +77,9 @@ async function loadActiveAssignments(officerId) {
       id,
       officer_id,
       lga_id,
-      revenue_stream_id,
       is_active,
       created_at,
-      lgas(name),
-      revenue_streams(name)
+      lgas(name)
     `)
     .eq('officer_id', officerId)
     .eq('is_active', true)
@@ -95,13 +92,27 @@ async function loadActiveAssignments(officerId) {
   return data || [];
 }
 
+async function loadAvailableStreams() {
+  const { data, error } = await sb
+    .from('revenue_streams')
+    .select('id, name, is_active')
+    .eq('is_active', true)
+    .order('name', { ascending: true });
+
+  if (error) {
+    console.error('Streams load error:', error);
+    return [];
+  }
+  return data || [];
+}
+
 function renderAssignments(assignments) {
   if (!assignmentsTableBody) return;
 
   if (!assignments.length) {
     assignmentsTableBody.innerHTML = `
       <tr class="text-slate-500">
-        <td colspan="3" class="px-3 py-4 text-center">
+        <td colspan="2" class="px-3 py-4 text-center">
           No active assignments. Contact KTIRS admin for assignment.
         </td>
       </tr>
@@ -111,12 +122,10 @@ function renderAssignments(assignments) {
 
   assignmentsTableBody.innerHTML = assignments.map(a => {
     const lgaName = a.lgas?.name || '—';
-    const streamName = a.revenue_streams?.name || '—';
 
     return `
       <tr>
         <td class="px-3 py-2">${safeText(lgaName)}</td>
-        <td class="px-3 py-2">${safeText(streamName)}</td>
         <td class="px-3 py-2">
           <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[11px] font-medium">
             <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Active
@@ -127,15 +136,15 @@ function renderAssignments(assignments) {
   }).join('');
 }
 
-function renderBadgesAndStats(profile, user, assignments) {
+function renderBadgesAndStats(profile, user, assignments, streams) {
   const officerName = (profile?.full_name || '').trim() || (user?.email || 'Officer');
   const officerInitial = officerName.charAt(0).toUpperCase();
 
   const lgaNames = uniq(assignments.map(a => a.lgas?.name).filter(Boolean));
-  const streamNames = uniq(assignments.map(a => a.revenue_streams?.name).filter(Boolean));
-
   const lgaLabel = lgaNames.length ? lgaNames.join(', ') : 'Unassigned';
-  const streamLabel = streamNames.length ? `${streamNames.length} stream(s)` : 'None';
+
+  const activeStreamsCount = streams.length;
+  const streamsLabel = activeStreamsCount ? String(activeStreamsCount) : '0';
 
   if (topbarUserName) topbarUserName.textContent = officerName;
   if (topbarUserInitial) topbarUserInitial.textContent = officerInitial;
@@ -145,10 +154,9 @@ function renderBadgesAndStats(profile, user, assignments) {
   if (statOfficerId) statOfficerId.textContent = user?.id ? shortId(user.id) : '—';
 
   if (assignedLgaBadge) assignedLgaBadge.textContent = lgaLabel;
-  if (assignedStreamsBadge) assignedStreamsBadge.textContent = streamLabel;
 
   if (statAssignedLgas) statAssignedLgas.textContent = lgaNames.length ? String(lgaNames.length) : '0';
-  if (statAssignedStreams) statAssignedStreams.textContent = streamNames.length ? String(streamNames.length) : '0';
+  if (statAvailableStreams) statAvailableStreams.textContent = streamsLabel;
 
   if (btnRecordCurrentMonth) {
     const canRecord = assignments.length > 0;
@@ -173,9 +181,12 @@ btnRecordCurrentMonth?.addEventListener('click', () => {
   const auth = await requireOfficer();
   if (!auth) return;
 
-  const assignments = await loadActiveAssignments(auth.user.id);
+  const [assignments, streams] = await Promise.all([
+    loadActiveAssignments(auth.user.id),
+    loadAvailableStreams()
+  ]);
 
-  renderBadgesAndStats(auth.profile, auth.user, assignments);
+  renderBadgesAndStats(auth.profile, auth.user, assignments, streams);
   renderAssignments(assignments);
 
   if (window.lucide) lucide.createIcons();

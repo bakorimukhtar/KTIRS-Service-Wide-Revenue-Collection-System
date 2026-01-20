@@ -1,7 +1,7 @@
 // /officers/js/streams.js
 const sb = window.supabaseClient;
 
-// Fail fast: if this logs, your HTML script order/init is wrong
+// Fail fast if Supabase client is missing
 if (!sb) {
   console.error('window.supabaseClient is missing. Ensure Supabase init script runs BEFORE streams.js');
   alert('System configuration error: Supabase client not initialized.');
@@ -36,7 +36,7 @@ const streamsTableBody = el('streamsTableBody');
 
 const btnLogout = el('btnLogout');
 
-// Details modal elements (must exist in streams.html)
+// Details modal elements
 const detailsModal = el('detailsModal');
 const detailsBackdrop = el('detailsBackdrop');
 const closeDetailsBtn = el('closeDetailsBtn');
@@ -60,8 +60,11 @@ const detailsMonthTableBody = el('detailsMonthTableBody');
 let currentUser = null;
 let currentProfile = null;
 
-let allAssignments = [];
-let filteredAssignments = [];
+// Data sets
+let officerAssignments = [];   // LGA-only assignments
+let activeStreams = [];        // all active revenue_streams
+let lgaStreamRows = [];        // cartesian rows: each (LGA, stream)
+let filteredRows = [];
 
 let currentDetails = {
   lga_id: null,
@@ -107,8 +110,9 @@ function monthLabelFromKey(key) {
   return d.toLocaleString(undefined, { month: 'long', year: 'numeric' });
 }
 
+// -------- Auth / profile --------
+
 async function requireOfficer() {
-  // This performs a network request and returns authentic user data [web:444]
   const { data: userData, error: userErr } = await sb.auth.getUser();
   const user = userData?.user;
 
@@ -139,18 +143,18 @@ async function requireOfficer() {
   return { user, profile };
 }
 
-async function loadAssignments(officerId) {
+// -------- Loads --------
+
+async function loadOfficerAssignments(officerId) {
   const { data, error } = await sb
     .from('officer_assignments')
     .select(`
       id,
       officer_id,
       lga_id,
-      revenue_stream_id,
       is_active,
       created_at,
-      lgas(name),
-      revenue_streams(name)
+      lgas(name)
     `)
     .eq('officer_id', officerId)
     .eq('is_active', true)
@@ -163,7 +167,39 @@ async function loadAssignments(officerId) {
   return data || [];
 }
 
-function renderHeaderAndStats(assignments) {
+async function loadActiveStreams() {
+  const { data, error } = await sb
+    .from('revenue_streams')
+    .select('id, name, is_active')
+    .eq('is_active', true)
+    .order('name', { ascending: true });
+
+  if (error) {
+    console.error('Streams load error:', error);
+    return [];
+  }
+  return data || [];
+}
+
+// Build rows: every assigned LGA × every active stream (for viewing/filtering)
+function buildLgaStreamRows(assignments, streams) {
+  const rows = [];
+  for (const a of assignments) {
+    for (const s of streams) {
+      rows.push({
+        lga_id: a.lga_id,
+        lga_name: a.lgas?.name || '—',
+        revenue_stream_id: s.id,
+        stream_name: s.name || '—',
+      });
+    }
+  }
+  return rows;
+}
+
+// -------- Header + stats --------
+
+function renderHeaderAndStats(assignments, streams) {
   const officerName = (currentProfile?.full_name || '').trim() || (currentUser?.email || 'Officer');
 
   if (topbarUserName) topbarUserName.textContent = officerName;
@@ -172,17 +208,20 @@ function renderHeaderAndStats(assignments) {
   if (statOfficerId) statOfficerId.textContent = currentUser?.id ? shortId(currentUser.id) : '—';
 
   const lgaNames = uniq(assignments.map(a => a.lgas?.name).filter(Boolean));
-  const streamNames = uniq(assignments.map(a => a.revenue_streams?.name).filter(Boolean));
 
   if (topbarBranchName) topbarBranchName.textContent = lgaNames.length ? lgaNames.join(', ') : 'Unassigned';
 
   if (statLgaCount) statLgaCount.textContent = String(lgaNames.length);
   if (statLgaNames) statLgaNames.textContent = lgaNames.length ? lgaNames.join(', ') : '—';
-  if (statStreamCount) statStreamCount.textContent = String(streamNames.length);
+
+  const streamsCount = streams.length;
+  if (statStreamCount) statStreamCount.textContent = String(streamsCount);
 
   if (assignmentCountBadge) assignmentCountBadge.textContent = String(assignments.length);
   if (currentYearBadge) currentYearBadge.textContent = String(new Date().getFullYear());
 }
+
+// -------- Table render / search --------
 
 function renderAssignments(rows) {
   if (!streamsTableBody) return;
@@ -190,62 +229,58 @@ function renderAssignments(rows) {
   if (!rows.length) {
     streamsTableBody.innerHTML = `
       <tr class="text-slate-500">
-        <td colspan="4" class="px-3 py-4 text-center">No active assignments.</td>
+        <td colspan="4" class="px-3 py-4 text-center">No active assignments or streams.</td>
       </tr>
     `;
     return;
   }
 
-  streamsTableBody.innerHTML = rows.map(a => {
-    const lgaName = a.lgas?.name || '—';
-    const streamName = a.revenue_streams?.name || '—';
+  streamsTableBody.innerHTML = rows.map(r => `
+    <tr>
+      <td class="px-3 py-2">${safeText(r.lga_name)}</td>
+      <td class="px-3 py-2">${safeText(r.stream_name)}</td>
+      <td class="px-3 py-2">
+        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[11px] font-medium">
+          <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Active
+        </span>
+      </td>
+      <td class="px-3 py-2 text-right">
+        <button
+          class="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1.5 text-[11px] hover:bg-slate-50"
+          data-details="1"
+          data-lga="${safeText(r.lga_id)}"
+          data-stream="${safeText(r.revenue_stream_id)}">
+          <i data-lucide="info" class="w-3.5 h-3.5"></i>
+          <span>Details</span>
+        </button>
 
-    return `
-      <tr>
-        <td class="px-3 py-2">${safeText(lgaName)}</td>
-        <td class="px-3 py-2">${safeText(streamName)}</td>
-        <td class="px-3 py-2">
-          <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[11px] font-medium">
-            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Active
-          </span>
-        </td>
-        <td class="px-3 py-2 text-right">
-          <button
-            class="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1.5 text-[11px] hover:bg-slate-50"
-            data-details="1"
-            data-lga="${safeText(a.lga_id)}"
-            data-stream="${safeText(a.revenue_stream_id)}">
-            <i data-lucide="info" class="w-3.5 h-3.5"></i>
-            <span>Details</span>
-          </button>
-
-          <button
-            class="ml-2 inline-flex items-center gap-1 rounded-md bg-slate-900 text-white px-2.5 py-1.5 text-[11px] hover:bg-slate-800"
-            data-entry="1"
-            data-lga="${safeText(a.lga_id)}"
-            data-stream="${safeText(a.revenue_stream_id)}">
-            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-            <span>Monthly entry</span>
-          </button>
-        </td>
-      </tr>
-    `;
-  }).join('');
+        <button
+          class="ml-2 inline-flex items-center gap-1 rounded-md bg-slate-900 text-white px-2.5 py-1.5 text-[11px] hover:bg-slate-800"
+          data-entry="1"
+          data-lga="${safeText(r.lga_id)}"
+          data-stream="${safeText(r.revenue_stream_id)}">
+          <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+          <span>Monthly entry</span>
+        </button>
+      </td>
+    </tr>
+  `).join('');
 
   if (window.lucide) lucide.createIcons();
 }
 
 function applySearch() {
   const q = (searchAssign?.value || '').trim().toLowerCase();
-  if (!q) filteredAssignments = allAssignments.slice();
-  else {
-    filteredAssignments = allAssignments.filter(a => {
-      const lgaName = String(a.lgas?.name || '').toLowerCase();
-      const streamName = String(a.revenue_streams?.name || '').toLowerCase();
+  if (!q) {
+    filteredRows = lgaStreamRows.slice();
+  } else {
+    filteredRows = lgaStreamRows.filter(r => {
+      const lgaName = String(r.lga_name || '').toLowerCase();
+      const streamName = String(r.stream_name || '').toLowerCase();
       return lgaName.includes(q) || streamName.includes(q);
     });
   }
-  renderAssignments(filteredAssignments);
+  renderAssignments(filteredRows);
 }
 
 searchAssign?.addEventListener('input', applySearch);
@@ -269,10 +304,12 @@ streamsTableBody?.addEventListener('click', async (e) => {
   }
 });
 
+// -------- Details (collections per LGA + stream) --------
+
 async function openDetails(lgaId, streamId) {
-  const row = allAssignments.find(a => a.lga_id === lgaId && a.revenue_stream_id === streamId);
-  const lgaName = row?.lgas?.name || '—';
-  const streamName = row?.revenue_streams?.name || '—';
+  const row = lgaStreamRows.find(r => r.lga_id === lgaId && r.revenue_stream_id === streamId);
+  const lgaName = row?.lga_name || '—';
+  const streamName = row?.stream_name || '—';
 
   currentDetails.lga_id = lgaId;
   currentDetails.revenue_stream_id = streamId;
@@ -286,7 +323,7 @@ async function openDetails(lgaId, streamId) {
   showDetailsModal();
   if (window.lucide) lucide.createIcons();
 
-  // NOTE: collections has economic_code_id, so we join economic_codes and filter by streamId
+  // collections has economic_code_id; join economic_codes to filter by revenue_stream_id
   const { data, error } = await sb
     .from('collections')
     .select(`
@@ -322,7 +359,12 @@ async function openDetails(lgaId, streamId) {
   }
 
   const perMonth = [...byMonth.entries()]
-    .map(([monthKey, v]) => ({ monthKey, label: monthLabelFromKey(monthKey), total: v.total, rows: v.rows }))
+    .map(([monthKey, v]) => ({
+      monthKey,
+      label: monthLabelFromKey(monthKey),
+      total: v.total,
+      rows: v.rows
+    }))
     .sort((a, b) => String(b.monthKey).localeCompare(String(a.monthKey)));
 
   currentDetails.perMonth = perMonth;
@@ -334,9 +376,11 @@ async function openDetails(lgaId, streamId) {
 
   if (detailsTotalRecorded) detailsTotalRecorded.textContent = fmtNaira(totalAll);
   if (detailsMonthsRecorded) detailsMonthsRecorded.textContent = String(monthsRecorded);
-  if (detailsMonthsHint) detailsMonthsHint.textContent = monthsRecorded >= 12 ? '12+ months recorded.' : 'Progress across all time.';
+  if (detailsMonthsHint) detailsMonthsHint.textContent =
+    monthsRecorded >= 12 ? '12+ months recorded.' : 'Progress across all time.';
   if (detailsYearProgress) detailsYearProgress.textContent = `${monthsThisYear}/12`;
-  if (detailsYearHint) detailsYearHint.textContent = monthsThisYear >= 12 ? 'All months recorded this year.' : 'Months recorded this year.';
+  if (detailsYearHint) detailsYearHint.textContent =
+    monthsThisYear >= 12 ? 'All months recorded this year.' : 'Months recorded this year.';
   if (detailsMessage) detailsMessage.textContent = '';
 
   if (detailsMonthTableBody) {
@@ -358,12 +402,21 @@ async function openDetails(lgaId, streamId) {
   }
 }
 
-// (Optional) Hook buttons - you can implement export next
+// Monthly entry from details
 btnGoMonthlyEntry?.addEventListener('click', () => {
   if (!currentDetails.lga_id || !currentDetails.revenue_stream_id) return;
   window.location.href = `monthly-entry.html?lga=${encodeURIComponent(currentDetails.lga_id)}&stream=${encodeURIComponent(currentDetails.revenue_stream_id)}`;
 });
 
+// (Export buttons still to be implemented)
+btnExportExcel?.addEventListener('click', () => {
+  alert('Excel export will be implemented here.');
+});
+btnExportPdf?.addEventListener('click', () => {
+  alert('PDF export will be implemented here.');
+});
+
+// -------- Init --------
 (async () => {
   const auth = await requireOfficer();
   if (!auth) return;
@@ -371,11 +424,19 @@ btnGoMonthlyEntry?.addEventListener('click', () => {
   currentUser = auth.user;
   currentProfile = auth.profile;
 
-  allAssignments = await loadAssignments(currentUser.id);
-  filteredAssignments = allAssignments.slice();
+  const [assignments, streams] = await Promise.all([
+    loadOfficerAssignments(currentUser.id),
+    loadActiveStreams()
+  ]);
 
-  renderHeaderAndStats(allAssignments);
-  renderAssignments(filteredAssignments);
+  officerAssignments = assignments;
+  activeStreams = streams;
+
+  lgaStreamRows = buildLgaStreamRows(officerAssignments, activeStreams);
+  filteredRows = lgaStreamRows.slice();
+
+  renderHeaderAndStats(officerAssignments, activeStreams);
+  renderAssignments(filteredRows);
 
   if (window.lucide) lucide.createIcons();
 })();

@@ -105,7 +105,7 @@
         <div>
           <h1 class="text-xl font-semibold text-slate-900" id="pageTitle">Officer Dashboard</h1>
           <p class="text-sm text-slate-600" id="pageSubtitle">
-            View your current branch assignment(s) and revenue stream(s).
+            View your current branch assignment(s). All active revenue streams are available when recording collections.
           </p>
         </div>
         <div class="flex flex-wrap items-center gap-2 text-xs">
@@ -114,9 +114,6 @@
           </div>
           <div class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-100">
             LGA/Branch: <span class="font-semibold" id="assignedLgaBadge">Loading...</span>
-          </div>
-          <div class="px-3 py-1 rounded-full bg-indigo-50 text-indigo-800 border border-indigo-100">
-            Stream(s): <span class="font-semibold" id="assignedStreamsBadge">Loading...</span>
           </div>
         </div>
       </div>
@@ -136,9 +133,9 @@
         </div>
 
         <div class="bg-white border border-slate-200 rounded-md p-4">
-          <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Assigned Streams</p>
-          <p class="text-lg font-semibold text-slate-900" id="statAssignedStreams">—</p>
-          <p class="text-[11px] text-slate-500 mt-1">Revenue streams assigned to your branch coverage.</p>
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Available Streams</p>
+          <p class="text-lg font-semibold text-slate-900" id="statAvailableStreams">—</p>
+          <p class="text-[11px] text-slate-500 mt-1">All active revenue streams you can use when recording collections.</p>
         </div>
       </section>
 
@@ -153,7 +150,7 @@
           </button>
         </div>
         <p class="text-[11px] text-slate-600" id="officerHint">
-          This action can open a monthly entry page (to be added) where you record collections for your assigned streams.
+          This action can open a monthly entry page where you record collections for your assigned LGA(s) using any active revenue stream.
         </p>
       </section>
 
@@ -162,7 +159,7 @@
         <div class="flex items-start justify-between gap-3 mb-3">
           <div>
             <h2 class="text-sm font-semibold text-slate-900">Active assignments</h2>
-            <p class="text-xs text-slate-500">Only active assignments are shown.</p>
+            <p class="text-xs text-slate-500">Only active LGA/branch assignments are shown.</p>
           </div>
         </div>
 
@@ -171,13 +168,12 @@
             <thead class="bg-slate-50 text-slate-600">
               <tr>
                 <th class="px-3 py-2 font-medium border-b border-slate-200">LGA / Branch</th>
-                <th class="px-3 py-2 font-medium border-b border-slate-200">Revenue stream</th>
                 <th class="px-3 py-2 font-medium border-b border-slate-200">Status</th>
               </tr>
             </thead>
             <tbody id="assignmentsTableBody" class="divide-y divide-slate-100">
               <tr class="text-slate-500">
-                <td colspan="3" class="px-3 py-4 text-center">Loading assignments...</td>
+                <td colspan="2" class="px-3 py-4 text-center">Loading assignments...</td>
               </tr>
             </tbody>
           </table>

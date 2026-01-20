@@ -240,24 +240,37 @@ async function requireOfficer() {
 }
 
 async function loadContextNames() {
-  // verify officer is assigned (optional but recommended)
+  // 1) Verify officer is assigned to this LGA (LGA-only)
   const { data: assign, error: assignErr } = await sb
     .from('officer_assignments')
-    .select('id, lga_id, revenue_stream_id, is_active, lgas(name), revenue_streams(name)')
+    .select('id, lga_id, is_active, lgas(name)')
     .eq('officer_id', currentUser.id)
     .eq('lga_id', lgaId)
-    .eq('revenue_stream_id', streamId)
     .eq('is_active', true)
     .maybeSingle();
 
   if (assignErr || !assign) {
-    pageSubtitle.textContent = 'No active assignment for this LGA/stream. Contact admin.';
-    throw new Error('No assignment found or RLS blocked.');
+    pageSubtitle.textContent = 'No active assignment for this LGA. Contact admin.';
+    throw new Error('No LGA assignment found or RLS blocked.');
+  }
+
+  // 2) Load stream name independently (global active streams)
+  const { data: streamRow, error: streamErr } = await sb
+    .from('revenue_streams')
+    .select('id, name, is_active')
+    .eq('id', streamId)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (streamErr || !streamRow) {
+    pageSubtitle.textContent = 'Selected revenue stream is not available or inactive.';
+    throw new Error('Stream not found or inactive.');
   }
 
   lgaName = assign.lgas?.name || '—';
-  streamName = assign.revenue_streams?.name || '—';
+  streamName = streamRow.name || '—';
 }
+
 
 async function loadEconomicCodes() {
   const { data, error } = await sb
